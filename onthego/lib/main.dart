@@ -33,10 +33,8 @@ class _Main extends State<Main> {
     });
   }
 
-  static const List<Widget> _widgetOptions = <Widget>[
-    Text(
-      'Index 0: Home',
-    ),
+  static List<Widget> _widgetOptions = <Widget>[
+    ScreenNearby(),
     Text(
       'Index 1: Business',
     ),
@@ -48,10 +46,17 @@ class _Main extends State<Main> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
+      backgroundColor: Color(0xffe8e8e8),
+      body: SafeArea(
         child:  _widgetOptions.elementAt(_selectedIndex),
       ),
       bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: Color(0xff204051),
+        selectedItemColor: Color(0xfff05454),
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        unselectedItemColor: Color(0xffffffff),
+        showUnselectedLabels: false,
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.near_me),
@@ -66,9 +71,6 @@ class _Main extends State<Main> {
             label: 'Route Planner',
           ),
         ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.amber[800],
-        onTap: _onItemTapped,
       ),
     );
   }
