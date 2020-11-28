@@ -424,10 +424,12 @@ class _MapViewState extends State<MapView> {
             child: Center(
                 child: Column(
                   children: <Widget>[
+                    Icon(Icons.arrow_drop_down, color: Colors.white,),
+                    /*
                     Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.all(Radius.circular(MediaQuery.of(context).size.height * pullTabHeight * 0.07)),
-                        color: Color(0xffFFBFBF),
+                        color: Color(0x00FFBFBF),
                       ),
                       margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * pullTabHeight * 0.4),
                       width: MediaQuery.of(context).size.width / 2,
@@ -441,7 +443,7 @@ class _MapViewState extends State<MapView> {
                       margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * pullTabHeight * 0.2),
                       width: MediaQuery.of(context).size.width / 2,
                       height: MediaQuery.of(context).size.height * pullTabHeight * 0.07,
-                    ),
+                    ),*/
                   ],
                 )
             ),
