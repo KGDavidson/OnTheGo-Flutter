@@ -28,6 +28,9 @@ final MapController mapController = MapController();
 int selectedToggle = 0;
 double lastPosition = 0;
 double mapHeight = initialMapHeight;
+double currentBlurValue = 0;
+
+bool loading = false;
 
 String titleText = "XXXXX";
 String subText = "ID XXXXXX | towards XXXXXX";
@@ -123,17 +126,23 @@ class _ScreenNearby extends State<ScreenNearby> {
   @override
   void initState() {
     super.initState();
+    loading = true;
+    setState(() {});
     getCurrentLocation();
   }
 
-  void reloadPage() {
+  void reloadPage() async {
     setState(() {});
+    await Future.delayed(const Duration(milliseconds: 400), () => {
+      mapController.move(LatLng(mapController.center.latitude + 0.0000000001, mapController.center.longitude + 0.0000000001), mapController.zoom)
+    });
   }
 
   void getCurrentLocation() {
     geolocator
         .getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
         .then((Position position) async {
+          currentLocation = position;
           currentNearbyStops = await fetchCurrentNearbyStops(position);
           currentStop = currentNearbyStops[0];
           mapController.move(LatLng(currentStop.lat, currentStop.lon), 15);
@@ -141,6 +150,7 @@ class _ScreenNearby extends State<ScreenNearby> {
           currentArrivalTimes.sort((a, b) {
             return a.timeToStation.compareTo(b.timeToStation);
           });
+          loading = false;
           setState(() {});
         }).catchError((e) {
           print(e);
@@ -150,25 +160,39 @@ class _ScreenNearby extends State<ScreenNearby> {
   @override
   Widget build(BuildContext context) {
 
-    return Stack(
-      children: <Widget>[
-        ListViewPage(getCurrentLocation, reloadPage),
-        BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-          child: Container(
-            color: Colors.black.withOpacity(0.5),
+    return WillPopScope(
+      onWillPop:() async {
+        if (currentStop != null) {
+          currentStop = null;
+          setState(() {});
+          return false;
+        }
+        return true;
+      },
+      child: Stack(
+        children: <Widget>[
+          ListViewPage(getCurrentLocation, reloadPage),
+          IgnorePointer(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: currentBlurValue, sigmaY: currentBlurValue),
+              child: Container(
+                color: Colors.black.withOpacity(currentBlurValue > 0 ? currentBlurValue / 4 : 0),
+              ),
+            ),
           ),
-        ),
-        MapView(reloadPage),
-        TopToggleBar(getCurrentLocation),
-      ],
+          MapView(reloadPage),
+          TopToggleBar(getCurrentLocation, reloadPage),
+          loading ? LoadingOverlay() : Container(),
+        ],
+      ),
     );
   }
 }
 
 class TopToggleBar extends StatefulWidget {
   VoidCallback getCurrentLocation;
-  TopToggleBar(this.getCurrentLocation);
+  VoidCallback reloadPage;
+  TopToggleBar(this.getCurrentLocation, this.reloadPage);
 
   @override
   _TopToggleBarState createState() => _TopToggleBarState();
@@ -199,7 +223,9 @@ class _TopToggleBarState extends State<TopToggleBar> {
             onTap: (){
               setState(() {
                 selectedToggle = 0;
+                loading = true;
                 this.widget.getCurrentLocation();
+                this.widget.reloadPage();
               });
             },
             child: AnimatedContainer(
@@ -224,7 +250,9 @@ class _TopToggleBarState extends State<TopToggleBar> {
             onTap: (){
               setState(() {
                 selectedToggle = 1;
+                loading = true;
                 this.widget.getCurrentLocation();
+                this.widget.reloadPage();
               });
             },
             child: AnimatedContainer(
@@ -281,16 +309,22 @@ class _MapViewState extends State<MapView> {
                 //https://stamen-tiles-{s}.a.ssl.fastly.net/toner/{z}/{x}/{y}.png
                 //https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png
                 urlTemplate: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-                subdomains: ['a', 'b', 'c'],
+                subdomains: ['a', 'b', 'c', 'd'],
               ),
               new MarkerLayerOptions(
-                markers: currentNearbyStops != null ? currentNearbyStops.map((item) => Marker(
-                  width: 80.0,
-                  height: 80.0,
-                  point: LatLng(item.lat, item.lon),
-                  builder: (ctx) =>
-                      GestureDetector(
-                          onTap: () async{
+                markers: currentNearbyStops != null ? () {
+                  List<Marker> returnList = currentNearbyStops.map((item) => Marker(
+                    width: 80.0,
+                    height: 80.0,
+                    point: LatLng(item.lat, item.lon),
+                    builder: (ctx) =>
+                        GestureDetector(
+                          child: Icon(
+                              Icons.location_pin,
+                              size: currentStop == item ? 38.5 : 30.5,
+                              color: Color(currentStop == item ? 0xffe84545 : 0x802b2e4a),
+                          ),
+                          onTap: () async {
                             currentStop = item;
                             currentArrivalTimes = await fetchArrivalTimes();
                             currentArrivalTimes.sort((a, b) {
@@ -298,25 +332,28 @@ class _MapViewState extends State<MapView> {
                             });
                             mapController.move(LatLng(currentStop.lat, currentStop.lon), 15);
                             mapHeight = initialMapHeight;
+                            currentBlurValue = 0;
                             this.widget.reloadPage();
                           },
-                          child:  Stack(
-                            children: <Widget>[
-                              Icon(
-                                Icons.location_pin,
-                                color: Colors.black,
-                                size: currentStop == item ? 40 : 32,
-                              ),
-                              Icon(
-                                Icons.location_pin,
-                                color: Color(currentStop == item ? 0xffe84545 : 0xffFFBFBF),
-                                size: currentStop == item ? 38.5 : 30.5,
-                              ),
-                            ],
-                          )
-                      ),
-                ),
-                ).toList() : [],
+                        ),
+                  ),
+                  ).toList();
+                  if (currentLocation != null) {
+                    returnList.add(Marker(
+                        width: 80.0,
+                        height: 80.0,
+                        point: LatLng(currentLocation.latitude,
+                            currentLocation.longitude),
+                        builder: (ctx) =>
+                          Icon(
+                            Icons.my_location,
+                            color: Colors.black,
+                            size: 30,
+                          ),
+                    ));
+                  }
+                  return returnList;
+                }() : [],
               ),
             ],
           ),
@@ -326,26 +363,32 @@ class _MapViewState extends State<MapView> {
             lastPosition = details.globalPosition.dy;
           },
           onVerticalDragUpdate: (details) {
-            setState(() {
-              double change = details.globalPosition.dy - lastPosition;
-              mapHeight += change;
-              lastPosition = details.globalPosition.dy;
-              if (mapHeight < initialMapHeight) {
-                mapHeight = initialMapHeight;
-              }
-              if (mapHeight > endMapHeight) {
-                mapHeight = endMapHeight;
-              }
-            });
+            double change = details.globalPosition.dy - lastPosition;
+            mapHeight += change;
+            lastPosition = details.globalPosition.dy;
+            if (mapHeight < initialMapHeight) {
+              mapHeight = initialMapHeight;
+            }
+            if (mapHeight > endMapHeight) {
+              mapHeight = endMapHeight;
+            }
+            currentBlurValue = 2 * ((mapHeight - initialMapHeight) / (endMapHeight - initialMapHeight));
+            this.widget.reloadPage();
           },
           onVerticalDragEnd: (details) {
-            setState(() {
+            if (endMapHeight - mapHeight < 10) {
+              mapHeight = endMapHeight;
+              currentBlurValue = 2;
+            } else {
               if (details.primaryVelocity > 0) {
                 mapHeight = endMapHeight;
+                currentBlurValue = 2;
               } else {
                 mapHeight = initialMapHeight;
+                currentBlurValue = 0;
               }
-            });
+            }
+            this.widget.reloadPage();
           },
           child: Container(
             width: MediaQuery.of(context).size.width,
@@ -408,13 +451,17 @@ class _ListViewPageState extends State<ListViewPage> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onHorizontalDragEnd: (details) {
+        int currentSelectedToggle = selectedToggle;
         if (details.primaryVelocity > 0) {
           selectedToggle = 0;
         } else if(details.primaryVelocity < 0){
           selectedToggle = 1;
         }
-        this.widget.getCurrentLocation();
-        this.widget.reloadPage();
+        if (currentSelectedToggle != selectedToggle) {
+          loading = true;
+          this.widget.getCurrentLocation();
+          this.widget.reloadPage();
+        }
       },
       child: Column(
         children: <Widget>[
@@ -435,7 +482,7 @@ class _ListViewPageState extends State<ListViewPage> {
                             icon: Icon(currentStop != null ? Icons.arrow_back : null, color: Colors.white,),
                             onPressed: () {
                               currentStop = null;
-                              setState(() {});
+                              this.widget.reloadPage();
                             }
                         ),
                         Column(
@@ -571,88 +618,106 @@ class _ListViewPageState extends State<ListViewPage> {
                     ),
                   ) : Container(
                     height: MediaQuery.of(context).size.height - (MediaQuery.of(context).size.height * (toggleBarHeight + listViewTitleBarHeight) + initialMapHeight - 15),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: currentArrivalTimes != null && currentArrivalTimes.isNotEmpty ? currentArrivalTimes.map((item) => AnimatedContainer(
-                          duration: Duration(milliseconds: 300),
-                          curve: Curves.easeOut,
-                          color: Color(0xffe8e8e8),
-                          height: MediaQuery.of(context).size.width * listViewItemHeight,
-                          child: Row(
-                            children: <Widget>[
-                              item.lineName != null ? Container(
-                                height: MediaQuery.of(context).size.width * (listViewItemHeight - pullTabHeight) * 0.6,
-                                width: MediaQuery.of(context).size.width * (listViewItemHeight - pullTabHeight) * 0.6 * 2,
-                                margin: EdgeInsets.only(left: MediaQuery.of(context).size.width * (listViewItemHeight - pullTabHeight) * 0.2),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.all(Radius.circular(MediaQuery.of(context).size.width * (listViewItemHeight - pullTabHeight) * 0.6)),
-                                  color: Color(0xffe84545),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                      item.lineName,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      )
-                                  ),
-                                ),
-                              ) : Container(),
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.only(left: MediaQuery.of(context).size.height * listViewItemTextSize),
-                                    child: Text(
-                                      item.destinationName != null ? item.destinationName.length > 20 ? item.destinationName.replaceRange(21, item.destinationName.length, "...") : item.destinationName : "",
-                                      style: TextStyle(
-                                        color: Color(0xff2b2e4a),
-                                        fontSize: MediaQuery.of(context).size.height * listViewItemTextSize,
+                    child: RefreshIndicator(
+                      onRefresh: () async {
+                        currentArrivalTimes = await fetchArrivalTimes();
+                        currentArrivalTimes.sort((a, b) {
+                          return a.timeToStation.compareTo(b.timeToStation);
+                        });
+                        setState(() {});
+                      },
+                      child: SingleChildScrollView(
+                        physics: AlwaysScrollableScrollPhysics(),
+                        child: Column(
+                          children: currentArrivalTimes != null ? () {
+                            List returnArrivalTimes = currentArrivalTimes.map((item) => AnimatedContainer(
+                              duration: Duration(milliseconds: 300),
+                              curve: Curves.easeOut,
+                              color: Color(0xffe8e8e8),
+                              height: MediaQuery.of(context).size.width * listViewItemHeight,
+                              child: Row(
+                                children: <Widget>[
+                                  item.lineName != null ? Container(
+                                    height: MediaQuery.of(context).size.width * (listViewItemHeight - pullTabHeight) * 0.6,
+                                    width: MediaQuery.of(context).size.width * (listViewItemHeight - pullTabHeight) * 0.6 * 2,
+                                    margin: EdgeInsets.only(left: MediaQuery.of(context).size.width * (listViewItemHeight - pullTabHeight) * 0.2),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.all(Radius.circular(MediaQuery.of(context).size.width * (listViewItemHeight - pullTabHeight) * 0.6)),
+                                      color: Color(0xffe84545),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                          item.lineName,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          )
                                       ),
                                     ),
+                                  ) : Container(),
+                                  Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.only(left: MediaQuery.of(context).size.height * listViewItemTextSize),
+                                        child: Text(
+                                          item.destinationName != null ? item.destinationName.length > 20 ? item.destinationName.replaceRange(21, item.destinationName.length, "...") : item.destinationName : "",
+                                          style: TextStyle(
+                                            color: Color(0xff2b2e4a),
+                                            fontSize: MediaQuery.of(context).size.height * listViewItemTextSize,
+                                          ),
+                                        ),
+                                      ),
+                                      item.vehicleId != null ? Container(
+                                        padding: EdgeInsets.only(
+                                            left: MediaQuery.of(context).size.height * listViewItemTextSize,
+                                            top: MediaQuery.of(context).size.height * listViewItemTextSize / 4
+                                        ),
+                                        child: Text(
+                                          item.vehicleId,
+                                          style: TextStyle(
+                                            color: Color(0xff53354a),
+                                            fontSize: MediaQuery.of(context).size.height * listViewItemTextSize / 2,
+                                          ),
+                                        ),
+                                      ) : Container(),
+                                    ],
                                   ),
-                                  item.vehicleId != null ? Container(
-                                    padding: EdgeInsets.only(
-                                        left: MediaQuery.of(context).size.height * listViewItemTextSize,
-                                        top: MediaQuery.of(context).size.height * listViewItemTextSize / 4
+                                  Expanded(
+                                    flex: 1,
+                                    child: Container(
+                                      width: 100.0,
+                                      height: 100.0,
                                     ),
-                                    child: Text(
-                                      item.vehicleId,
-                                      style: TextStyle(
-                                        color: Color(0xff53354a),
-                                        fontSize: MediaQuery.of(context).size.height * listViewItemTextSize / 2,
+                                  ),
+                                  item.timeToStation != null ? Container(
+                                    height: MediaQuery.of(context).size.width * (listViewItemHeight - pullTabHeight),
+                                    margin: EdgeInsets.only(right: MediaQuery.of(context).size.width * (listViewItemHeight - pullTabHeight) * 0.2),
+                                    child: Center(
+                                      child: Text(
+                                          (item.timeToStation / 60).ceil().toString() + ((item.timeToStation / 60).ceil() > 0 ? " mins" : "min"),
+                                          style: TextStyle(
+                                            color: Colors.red,
+                                            fontSize: MediaQuery.of(context).size.width * (listViewItemHeight - pullTabHeight) * 0.5,
+                                            fontWeight: FontWeight.bold,
+                                          )
                                       ),
                                     ),
                                   ) : Container(),
                                 ],
                               ),
-                              Expanded(
-                                flex: 1,
-                                child: Container(
-                                  width: 100.0,
-                                  height: 100.0,
-                                ),
-                              ),
-                              item.timeToStation != null ? Container(
-                                height: MediaQuery.of(context).size.width * (listViewItemHeight - pullTabHeight),
-                                margin: EdgeInsets.only(right: MediaQuery.of(context).size.width * (listViewItemHeight - pullTabHeight) * 0.2),
-                                child: Center(
-                                  child: Text(
-                                      (item.timeToStation / 60).ceil().toString() + ((item.timeToStation / 60).ceil() > 0 ? " mins" : "min"),
-                                      style: TextStyle(
-                                        color: Colors.red,
-                                        fontSize: MediaQuery.of(context).size.width * (listViewItemHeight - pullTabHeight) * 0.5,
-                                        fontWeight: FontWeight.bold,
-                                      )
-                                  ),
-                                ),
-                              ) : Container(),
-                            ],
-                          ),
-                        )).toList() : [Container()],
+                            )).toList();
+                            returnArrivalTimes.add(AnimatedContainer(
+                              duration: Duration(milliseconds: 300),
+                              curve: Curves.easeOut,
+                              height: MediaQuery.of(context).size.height - (MediaQuery.of(context).size.height * (toggleBarHeight + listViewTitleBarHeight) + initialMapHeight - 15),
+                            ));
+                            return returnArrivalTimes;
+                          }() : [Container()],
+                        ),
                       ),
-                    ),
+                    )
                   ),
                 ],
               )
@@ -662,3 +727,21 @@ class _ListViewPageState extends State<ListViewPage> {
     );
   }
 }
+
+class LoadingOverlay extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 1, sigmaY: 1),
+        child: Container(
+          color: Colors.black.withOpacity(0.5),
+          child: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
