@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'ScreenNearby.dart';
 
 void main() {
@@ -8,6 +9,10 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+
     return MaterialApp(
       title: 'OnTheGo',
       theme: ThemeData(
@@ -51,8 +56,8 @@ class _Main extends State<Main> {
         child:  _widgetOptions.elementAt(_selectedIndex),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Color(0xff204051),
-        selectedItemColor: Color(0xfff05454),
+        backgroundColor: Color(0xff2b2e4a),
+        selectedItemColor: Color(0xffe84545),
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         unselectedItemColor: Color(0xffffffff),
