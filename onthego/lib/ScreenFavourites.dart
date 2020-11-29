@@ -338,6 +338,7 @@ class _ListViewPageState extends State<ListViewPage> {
                             child: currentStop.stopLetter == null || currentStop.stopLetter.toString().contains("->") || currentStop.stopLetter == "Stop" ? Icon(Icons.train, color: Colors.white,) : Text(currentStop.stopLetter.split("Stop ")[1], style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize:  MediaQuery.of(context).size.width * (listViewTitleBarHeight) * 0.6 * 0.4,),)
                         ),
                       ) : Container(),
+                      
                     ],
                   ),
                 ),
