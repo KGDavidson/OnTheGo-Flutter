@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:onthego/ScreenFavourites.dart';
 import 'ScreenNearby.dart';
 import 'ScreenFavourites.dart';
+import 'ScreenRoutePlanner.dart';
 
 void main() {
   runApp(MyApp());
@@ -43,9 +44,7 @@ class _Main extends State<Main> {
   static List<Widget> _widgetOptions = <Widget>[
     ScreenNearby(),
     ScreenFavourites(),
-    Text(
-      'Index 2: School',
-    ),
+    ScreenRoutePlanner(),
   ];
 
   @override
