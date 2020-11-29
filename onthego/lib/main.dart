@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:onthego/ScreenFavourites.dart';
 import 'ScreenNearby.dart';
+import 'ScreenFavourites.dart';
 
 void main() {
   runApp(MyApp());
@@ -40,9 +42,7 @@ class _Main extends State<Main> {
 
   static List<Widget> _widgetOptions = <Widget>[
     ScreenNearby(),
-    Text(
-      'Index 1: Business',
-    ),
+    ScreenFavourites(),
     Text(
       'Index 2: School',
     ),

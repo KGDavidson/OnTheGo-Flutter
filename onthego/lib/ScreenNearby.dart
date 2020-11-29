@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'dart:convert';
 
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_map/flutter_map.dart';
 import "package:latlong/latlong.dart";
 import 'package:http/http.dart' as http;
+
+const FAVOURITES_ID_LIST_KEY = "57";
 
 final int animationDuration = 300;
 
@@ -40,6 +43,20 @@ Position currentLocation;
 Stop currentStop;
 List currentNearbyStops;
 List currentArrivalTimes;
+List currentFavorites = [];
+
+readFavourites() async {
+  final prefs = await SharedPreferences.getInstance();
+  final value = prefs.getStringList(FAVOURITES_ID_LIST_KEY) ?? [];
+  currentFavorites = value;
+  print('read: $currentFavorites');
+}
+
+writeFavourites() async {
+  final prefs = await SharedPreferences.getInstance();
+  prefs.setStringList(FAVOURITES_ID_LIST_KEY, currentFavorites);
+  print('saved $currentFavorites');
+}
 
 class Stop {
   final String stopLetter;
@@ -106,7 +123,7 @@ Future<List> fetchArrivalTimes() async {
   String url = 'https://api.tfl.gov.uk/Stoppoint/';
   url += currentStop.naptanId;
   url += "/arrivals";
-  print(url);
+  print("////" + url);
   final response = await http.get(url);
 
   if (response.statusCode == 200) {
@@ -128,9 +145,11 @@ class _ScreenNearby extends State<ScreenNearby> {
   @override
   void initState() {
     super.initState();
-    loading = true;
-    setState(() {});
-    getCurrentLocationAndFindClosest();
+    readFavourites().then(() {
+      loading = true;
+      setState(() {});
+      getCurrentLocationAndFindClosest();
+    }());
   }
 
   void reloadPage() async {
@@ -425,25 +444,6 @@ class _MapViewState extends State<MapView> {
                 child: Column(
                   children: <Widget>[
                     Icon(Icons.arrow_drop_down, color: Colors.white,),
-                    /*
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.all(Radius.circular(MediaQuery.of(context).size.height * pullTabHeight * 0.07)),
-                        color: Color(0x00FFBFBF),
-                      ),
-                      margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * pullTabHeight * 0.4),
-                      width: MediaQuery.of(context).size.width / 2,
-                      height: MediaQuery.of(context).size.height * pullTabHeight * 0.07,
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.all(Radius.circular(MediaQuery.of(context).size.height * pullTabHeight * 0.07)),
-                        color: Color(0xffFFBFBF),
-                      ),
-                      margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * pullTabHeight * 0.2),
-                      width: MediaQuery.of(context).size.width / 2,
-                      height: MediaQuery.of(context).size.height * pullTabHeight * 0.07,
-                    ),*/
                   ],
                 )
             ),
@@ -466,7 +466,7 @@ class ListViewPage extends StatefulWidget {
 }
 
 class _ListViewPageState extends State<ListViewPage> {
-  @override//(MediaQuery.of(context).size.height * (toggleBarHeight + pullTabHeight)) + mapHeight
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onHorizontalDragEnd: (details) {
@@ -508,15 +508,40 @@ class _ListViewPageState extends State<ListViewPage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              padding: EdgeInsets.only(left: MediaQuery.of(context).size.height * listViewTitleBarTextSize / 3),
-                              child: Text(
-                                currentStop != null ? currentStop.commonName.length > 20 ? currentStop.commonName.replaceRange(21, currentStop.commonName.length, "...") : currentStop.commonName : "Nearby Stops",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: MediaQuery.of(context).size.height * listViewTitleBarTextSize,
+                            Row(
+                              children: <Widget>[
+                                Container(
+                                  padding: EdgeInsets.only(left: MediaQuery.of(context).size.height * listViewTitleBarTextSize / 3, right: MediaQuery.of(context).size.height * listViewTitleBarTextSize / 3),
+                                  child: Text(
+                                    currentStop != null ? currentStop.commonName.length > 17 ? currentStop.commonName.replaceRange(18, currentStop.commonName.length, "...") : currentStop.commonName : "Nearby Stops",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: MediaQuery.of(context).size.height * listViewTitleBarTextSize,
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                currentStop != null ? GestureDetector(
+                                  onTap: () {
+                                    if (currentFavorites.contains(currentStop.naptanId)) {
+                                      currentFavorites.removeWhere((item) => item == currentStop.naptanId);
+                                      writeFavourites();
+                                      setState(() {});
+                                    } else {
+                                      currentFavorites.add(currentStop.naptanId);
+                                      writeFavourites();
+                                      setState(() {});
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: EdgeInsets.only(left: 3, right: 3, bottom: 3, top: 5),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(100),
+                                      color: Color(0xff2b2e4a),
+                                    ),
+                                    child: Icon(currentFavorites.contains(currentStop.naptanId) ? Icons.favorite : Icons.favorite_border, color: Color(0xffe84545),),
+                                  )
+                                ) : Container(),
+                              ],
                             ),
                             currentStop != null ? Container(
                               padding: EdgeInsets.only(
