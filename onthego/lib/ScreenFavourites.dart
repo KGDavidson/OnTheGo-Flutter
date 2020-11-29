@@ -10,6 +10,8 @@ import 'package:http/http.dart' as http;
 
 const FAVOURITES_ID_LIST_KEY = "57";
 
+final int animationDuration = 300;
+
 final double listViewTitleBarHeight = 0.15;
 final double listViewItemHeight = 0.13;
 
@@ -18,13 +20,8 @@ final double listViewItemTextSize = 0.02;
 
 final Geolocator geolocator = Geolocator()..forceAndroidLocationManager;
 
-double lastPosition = 0;
-double currentBlurValue = 0;
-
 bool loading = false;
 bool favouritesChanged = false;
-
-String titleText = "XXXXX";
 
 Position currentLocation;
 
@@ -86,11 +83,10 @@ class ArrivalTime {
 }
 
 getCurrentLocation() async{
-  geolocator
+  await geolocator
       .getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
       .then((Position position) async {
     currentLocation = position;
-    loading = false;
   }).catchError((e) {
     print(e);
   });
@@ -243,7 +239,7 @@ class _ListViewPageState extends State<ListViewPage> {
             child: Column(
               children: <Widget>[
                 AnimatedContainer(
-                  duration: Duration(milliseconds: 300),
+                  duration: Duration(milliseconds: animationDuration),
                   curve: Curves.easeOut,
                   color: Color(0xff903749),
                   height: MediaQuery.of(context).size.width * listViewTitleBarHeight,
@@ -447,7 +443,7 @@ class _ListViewPageState extends State<ListViewPage> {
                         child: Column(
                           children: currentArrivalTimes != null ? () {
                             List returnArrivalTimes = currentArrivalTimes.map((item) => AnimatedContainer(
-                              duration: Duration(milliseconds: 300),
+                              duration: Duration(milliseconds: animationDuration),
                               curve: Curves.easeOut,
                               color: Color(0xffe8e8e8),
                               height: MediaQuery.of(context).size.width * listViewItemHeight,
@@ -525,7 +521,7 @@ class _ListViewPageState extends State<ListViewPage> {
                               ),
                             )).toList();
                             returnArrivalTimes.add(AnimatedContainer(
-                              duration: Duration(milliseconds: 300),
+                              duration: Duration(milliseconds: animationDuration),
                               curve: Curves.easeOut,
                               height: MediaQuery.of(context).size.height - (MediaQuery.of(context).size.height * (listViewTitleBarHeight) + 15),
                             ));

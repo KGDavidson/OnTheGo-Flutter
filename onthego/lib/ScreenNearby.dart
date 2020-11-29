@@ -36,8 +36,6 @@ double currentBlurValue = 0;
 
 bool loading = false;
 
-String titleText = "XXXXX";
-
 Position currentLocation;
 
 Stop currentStop;
@@ -270,7 +268,7 @@ class _TopToggleBarState extends State<TopToggleBar> {
                   borderRadius: BorderRadius.only(topLeft: Radius.circular(MediaQuery.of(context).size.height * toggleHeight), bottomLeft: Radius.circular(MediaQuery.of(context).size.height * toggleHeight)),
                   border: Border.all(color: Color(0xffe84545), width: 3),
                 ),
-                duration: Duration(milliseconds: 300),
+                duration: Duration(milliseconds: animationDuration),
                 curve: Curves.fastOutSlowIn,
                 child: Center(
                   child: Icon(
@@ -290,7 +288,7 @@ class _TopToggleBarState extends State<TopToggleBar> {
               });
             },
             child: AnimatedContainer(
-                duration: Duration(milliseconds: 300),
+                duration: Duration(milliseconds: animationDuration),
                 curve: Curves.easeInOut,
                 height: MediaQuery.of(context).size.height * toggleHeight,
                 width: (MediaQuery.of(context).size.width - (MediaQuery.of(context).size.height * (toggleBarHeight - toggleHeight) * 3 / 2)) * toggleWidth,
@@ -328,7 +326,7 @@ class _MapViewState extends State<MapView> {
       children: <Widget>[
         AnimatedContainer(
           margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * toggleBarHeight),
-          duration: Duration(milliseconds: 300),
+          duration: Duration(milliseconds: animationDuration),
           curve: Curves.easeOut,
           height: mapHeight,
           child: FlutterMap(
@@ -490,7 +488,7 @@ class _ListViewPageState extends State<ListViewPage> {
               child: Column(
                 children: <Widget>[
                   AnimatedContainer(
-                    duration: Duration(milliseconds: 300),
+                    duration: Duration(milliseconds: animationDuration),
                     curve: Curves.easeOut,
                     padding: EdgeInsets.only(top: MediaQuery.of(context).size.height * (pullTabHeight)),
                     color: Color(0xff903749),
@@ -689,7 +687,7 @@ class _ListViewPageState extends State<ListViewPage> {
                         child: Column(
                           children: currentArrivalTimes != null ? () {
                             List returnArrivalTimes = currentArrivalTimes.map((item) => AnimatedContainer(
-                              duration: Duration(milliseconds: 300),
+                              duration: Duration(milliseconds: animationDuration),
                               curve: Curves.easeOut,
                               color: Color(0xffe8e8e8),
                               height: MediaQuery.of(context).size.width * listViewItemHeight,
@@ -767,7 +765,7 @@ class _ListViewPageState extends State<ListViewPage> {
                               ),
                             )).toList();
                             returnArrivalTimes.add(AnimatedContainer(
-                              duration: Duration(milliseconds: 300),
+                              duration: Duration(milliseconds: animationDuration),
                               curve: Curves.easeOut,
                               height: MediaQuery.of(context).size.height - (MediaQuery.of(context).size.height * (toggleBarHeight + listViewTitleBarHeight) + initialMapHeight - 15),
                             ));
