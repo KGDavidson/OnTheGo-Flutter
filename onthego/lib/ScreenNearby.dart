@@ -557,7 +557,6 @@ class _ListViewPageState extends State<ListViewPage> {
                               ),
                             ) : Container(),
                           ],
-                          
                         ),
                         Expanded(
                           flex: 1,
