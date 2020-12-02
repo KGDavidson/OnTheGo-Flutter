@@ -17,7 +17,7 @@ final double toggleBarHeight = 0.06;
 final double toggleHeight = toggleBarHeight * 0.8;
 final double toggleWidth = 0.5;
 final double pullTabHeight = 0.03;
-final double listViewTitleBarHeight = 0.2;
+final double listViewTitleBarHeight = 0.22;
 final double listViewItemHeight = 0.13;
 
 final double listViewTitleBarTextSize = 0.025;
@@ -34,6 +34,7 @@ double lastPosition = 0;
 double mapHeight = initialMapHeight;
 double currentBlurValue = 0;
 
+bool pullTabIcon = true;
 bool loading = false;
 
 Position currentLocation;
@@ -460,6 +461,11 @@ class _MapViewState extends State<MapView> {
             if (mapHeight > endMapHeight) {
               mapHeight = endMapHeight;
             }
+            if ((mapHeight - initialMapHeight) / (endMapHeight - initialMapHeight) > 0.5){
+              pullTabIcon = false;
+            } else {
+              pullTabIcon = true;
+            }
             currentBlurValue = 2 *
                 ((mapHeight - initialMapHeight) /
                     (endMapHeight - initialMapHeight));
@@ -468,13 +474,16 @@ class _MapViewState extends State<MapView> {
           onVerticalDragEnd: (details) {
             if (endMapHeight - mapHeight < 10) {
               mapHeight = endMapHeight;
+              pullTabIcon = false;
               currentBlurValue = 2;
             } else {
               if (details.primaryVelocity > 0) {
                 mapHeight = endMapHeight;
+                pullTabIcon = false;
                 currentBlurValue = 2;
               } else {
                 mapHeight = initialMapHeight;
+                pullTabIcon = true;
                 currentBlurValue = 0;
               }
             }
@@ -500,14 +509,11 @@ class _MapViewState extends State<MapView> {
               ],
             ),
             child: Center(
-                child: Column(
-              children: <Widget>[
-                Icon(
-                  Icons.arrow_drop_down,
+                child: Icon(
+                  pullTabIcon ? Icons.arrow_drop_down : Icons.arrow_drop_up,
                   color: Colors.white,
                 ),
-              ],
-            )),
+            ),
           ),
         ),
       ],

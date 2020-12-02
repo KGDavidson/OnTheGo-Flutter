@@ -44,7 +44,7 @@ class _Main extends State<Main> {
   static List<Widget> _widgetOptions = <Widget>[
     ScreenNearby(),
     ScreenFavourites(),
-    ScreenRoutePlanner(),
+    //ScreenRoutePlanner(),
   ];
 
   @override
@@ -70,10 +70,10 @@ class _Main extends State<Main> {
             icon: Icon(Icons.favorite),
             label: 'Favourites',
           ),
-          BottomNavigationBarItem(
+          /*BottomNavigationBarItem(
             icon: Icon(Icons.alt_route),
             label: 'Route Planner',
-          ),
+          ),*/
         ],
       ),
     );
