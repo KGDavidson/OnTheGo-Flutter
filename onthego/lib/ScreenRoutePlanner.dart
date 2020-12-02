@@ -18,8 +18,6 @@ final double listViewItemHeight = 0.13;
 final double listViewTitleBarTextSize = 0.025;
 final double listViewItemTextSize = 0.02;
 
-final Geolocator geolocator = Geolocator()..forceAndroidLocationManager;
-
 bool loading = false;
 bool favouritesChanged = false;
 
@@ -83,7 +81,7 @@ class ArrivalTime {
 }
 
 getCurrentLocation() async{
-  await geolocator
+  await Geolocator
       .getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
       .then((Position position) async {
     currentLocation = position;

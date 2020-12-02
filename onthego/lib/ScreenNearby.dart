@@ -26,7 +26,6 @@ final double listViewItemTextSize = 0.02;
 final double initialMapHeight = 200;
 final double endMapHeight = 500;
 
-final Geolocator geolocator = Geolocator()..forceAndroidLocationManager;
 final MapController mapController = MapController();
 
 int selectedToggle = 0;
@@ -181,36 +180,36 @@ class _ScreenNearby extends State<ScreenNearby> {
   }
 
   void getCurrentLocationAndFindClosest() {
-    geolocator
+    Geolocator
         .getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
         .then((Position position) async {
-      currentLocation = position;
-      currentNearbyStops = (await fetchCurrentNearbyStops(position))
-          .where((item) => item.lines.isNotEmpty)
-          .toList();
-      currentStop = currentNearbyStops[0];
-      mapController.move(LatLng(currentStop.lat, currentStop.lon), 15);
-      currentArrivalTimes = await fetchArrivalTimes();
-      currentArrivalTimes.sort((a, b) {
-        return a.timeToStation.compareTo(b.timeToStation);
-      });
-      loading = false;
-      setState(() {});
+          currentLocation = position;
+          currentNearbyStops = (await fetchCurrentNearbyStops(position))
+              .where((item) => item.lines.isNotEmpty)
+              .toList();
+          currentStop = currentNearbyStops[0];
+          mapController.move(LatLng(currentStop.lat, currentStop.lon), 15);
+          currentArrivalTimes = await fetchArrivalTimes();
+          currentArrivalTimes.sort((a, b) {
+            return a.timeToStation.compareTo(b.timeToStation);
+          });
+          loading = false;
+          setState(() {});
     }).catchError((e) {
       print(e);
     });
   }
 
   void getCurrentLocation() {
-    geolocator
+    Geolocator
         .getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
         .then((Position position) async {
-      currentLocation = position;
-      currentNearbyStops = (await fetchCurrentNearbyStops(position))
-          .where((item) => item.lines.isNotEmpty)
-          .toList();
-      loading = false;
-      setState(() {});
+          currentLocation = position;
+          currentNearbyStops = (await fetchCurrentNearbyStops(position))
+              .where((item) => item.lines.isNotEmpty)
+              .toList();
+          loading = false;
+          setState(() {});
     }).catchError((e) {
       print(e);
     });
