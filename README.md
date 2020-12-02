@@ -2,4 +2,7 @@
 
 ### A TFL API Powered Bus times app written in Flutter
 
-#### Still Missing the Route Planner Functionality
+- [x] Find and List Nearest Stops
+- [x] Display Arrival Times for Selected Stop
+- [ ] Search for Stops
+- [ ] Journey Planner
