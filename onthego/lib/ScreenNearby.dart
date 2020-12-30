@@ -13,6 +13,7 @@ const FAVOURITES_ID_LIST_KEY = "57";
 
 final int animationDuration = 300;
 
+final double bottomNavigationBarHeight = 60;
 final double toggleBarHeight = 0.06;
 final double toggleHeight = toggleBarHeight * 0.8;
 final double toggleWidth = 0.5;
@@ -555,7 +556,8 @@ class _ListViewPageState extends State<ListViewPage> {
               margin: EdgeInsets.only(
                   top:
                       (MediaQuery.of(context).size.height * (toggleBarHeight)) +
-                          initialMapHeight),
+                          initialMapHeight
+              ),
               color: Color(0xffe8e8e8),
               child: Column(
                 children: <Widget>[
@@ -756,12 +758,11 @@ class _ListViewPageState extends State<ListViewPage> {
                   ),
                   currentStop == null
                       ? Container(
-                          height: MediaQuery.of(context).size.height -
-                              (MediaQuery.of(context).size.height *
-                                      (toggleBarHeight +
-                                          listViewTitleBarHeight) +
-                                  initialMapHeight -
-                                  15),
+                        height: MediaQuery.of(context).size.height -
+                            (MediaQuery.of(context).size.height *
+                                (toggleBarHeight +
+                                    listViewTitleBarHeight)
+                            ) - initialMapHeight - bottomNavigationBarHeight - MediaQuery.of(context).padding.top,
                           child: RefreshIndicator(
                             onRefresh: () async {
                               loading = true;
@@ -943,12 +944,7 @@ class _ListViewPageState extends State<ListViewPage> {
                           ),
                         )
                       : Container(
-                          height: MediaQuery.of(context).size.height -
-                              (MediaQuery.of(context).size.height *
-                                      (toggleBarHeight +
-                                          listViewTitleBarHeight) +
-                                  initialMapHeight -
-                                  15),
+                      height: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - initialMapHeight - bottomNavigationBarHeight - (MediaQuery.of(context).size.height * (listViewTitleBarHeight)),
                           child: RefreshIndicator(
                             onRefresh: () async {
                               currentArrivalTimes = await fetchArrivalTimes();
@@ -963,149 +959,147 @@ class _ListViewPageState extends State<ListViewPage> {
                               child: Column(
                                 children: currentArrivalTimes != null
                                     ? () {
-                                        List returnArrivalTimes =
-                                            currentArrivalTimes
-                                                .map(
-                                                    (item) => AnimatedContainer(
-                                                          duration: Duration(
-                                                              milliseconds:
-                                                                  animationDuration),
-                                                          curve: Curves.easeOut,
-                                                          color:
-                                                              Color(0xffe8e8e8),
-                                                          height: MediaQuery.of(
-                                                                      context)
-                                                                  .size
-                                                                  .width *
-                                                              listViewItemHeight,
-                                                          child: Row(
-                                                            children: <Widget>[
-                                                              item.lineName !=
+                                        List returnArrivalTimes =currentArrivalTimes.map(
+                                            (item) => AnimatedContainer(
+                                                  duration: Duration(
+                                                      milliseconds:
+                                                          animationDuration),
+                                                  curve: Curves.easeOut,
+                                                  color:
+                                                      Color(0xffe8e8e8),
+                                                  height: MediaQuery.of(
+                                                              context)
+                                                          .size
+                                                          .width *
+                                                      listViewItemHeight,
+                                                  child: Row(
+                                                    children: <Widget>[
+                                                      item.lineName !=
+                                                              null
+                                                          ? Container(
+                                                              height: MediaQuery.of(context)
+                                                                      .size
+                                                                      .width *
+                                                                  (listViewItemHeight -
+                                                                      pullTabHeight) *
+                                                                  0.6,
+                                                              width: MediaQuery.of(context)
+                                                                      .size
+                                                                      .width *
+                                                                  (listViewItemHeight -
+                                                                      pullTabHeight) *
+                                                                  0.6 *
+                                                                  2,
+                                                              margin: EdgeInsets.only(
+                                                                  left: MediaQuery.of(context).size.width *
+                                                                      (listViewItemHeight - pullTabHeight) *
+                                                                      0.2),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                borderRadius: BorderRadius.all(Radius.circular(MediaQuery.of(context).size.width *
+                                                                    (listViewItemHeight -
+                                                                        pullTabHeight) *
+                                                                    0.6)),
+                                                                color: Color(
+                                                                    0xffe84545),
+                                                              ),
+                                                              child:
+                                                                  Center(
+                                                                child: Text(
+                                                                    item
+                                                                        .lineName,
+                                                                    style:
+                                                                        TextStyle(
+                                                                      color: Colors.white,
+                                                                      fontWeight: FontWeight.bold,
+                                                                    )),
+                                                              ),
+                                                            )
+                                                          : Container(),
+                                                      Column(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          Container(
+                                                            padding: EdgeInsets.only(
+                                                                left: MediaQuery.of(context).size.height *
+                                                                    listViewItemTextSize),
+                                                            child: Text(
+                                                              item.destinationName !=
                                                                       null
-                                                                  ? Container(
-                                                                      height: MediaQuery.of(context)
-                                                                              .size
-                                                                              .width *
-                                                                          (listViewItemHeight -
-                                                                              pullTabHeight) *
-                                                                          0.6,
-                                                                      width: MediaQuery.of(context)
-                                                                              .size
-                                                                              .width *
-                                                                          (listViewItemHeight -
-                                                                              pullTabHeight) *
-                                                                          0.6 *
-                                                                          2,
-                                                                      margin: EdgeInsets.only(
-                                                                          left: MediaQuery.of(context).size.width *
-                                                                              (listViewItemHeight - pullTabHeight) *
-                                                                              0.2),
-                                                                      decoration:
-                                                                          BoxDecoration(
-                                                                        borderRadius: BorderRadius.all(Radius.circular(MediaQuery.of(context).size.width *
-                                                                            (listViewItemHeight -
-                                                                                pullTabHeight) *
-                                                                            0.6)),
-                                                                        color: Color(
-                                                                            0xffe84545),
-                                                                      ),
-                                                                      child:
-                                                                          Center(
-                                                                        child: Text(
-                                                                            item
-                                                                                .lineName,
-                                                                            style:
-                                                                                TextStyle(
-                                                                              color: Colors.white,
-                                                                              fontWeight: FontWeight.bold,
-                                                                            )),
-                                                                      ),
-                                                                    )
-                                                                  : Container(),
-                                                              Column(
-                                                                mainAxisAlignment:
-                                                                    MainAxisAlignment
-                                                                        .center,
-                                                                crossAxisAlignment:
-                                                                    CrossAxisAlignment
-                                                                        .start,
-                                                                children: [
-                                                                  Container(
-                                                                    padding: EdgeInsets.only(
-                                                                        left: MediaQuery.of(context).size.height *
-                                                                            listViewItemTextSize),
-                                                                    child: Text(
-                                                                      item.destinationName !=
-                                                                              null
-                                                                          ? item.destinationName.length > 20
-                                                                              ? item.destinationName.replaceRange(21, item.destinationName.length, "...")
-                                                                              : item.destinationName
-                                                                          : "",
-                                                                      style:
-                                                                          TextStyle(
-                                                                        color: Color(
-                                                                            0xff2b2e4a),
-                                                                        fontSize:
-                                                                            MediaQuery.of(context).size.height *
-                                                                                listViewItemTextSize,
-                                                                      ),
+                                                                  ? item.destinationName.length > 20
+                                                                      ? item.destinationName.replaceRange(21, item.destinationName.length, "...")
+                                                                      : item.destinationName
+                                                                  : "",
+                                                              style:
+                                                                  TextStyle(
+                                                                color: Color(
+                                                                    0xff2b2e4a),
+                                                                fontSize:
+                                                                    MediaQuery.of(context).size.height *
+                                                                        listViewItemTextSize,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          item.vehicleId !=
+                                                                  null
+                                                              ? Container(
+                                                                  padding: EdgeInsets.only(
+                                                                      left: MediaQuery.of(context).size.height * listViewItemTextSize,
+                                                                      top: MediaQuery.of(context).size.height * listViewItemTextSize / 4),
+                                                                  child:
+                                                                      Text(
+                                                                    item.vehicleId,
+                                                                    style:
+                                                                        TextStyle(
+                                                                      color: Color(0xff53354a),
+                                                                      fontSize: MediaQuery.of(context).size.height * listViewItemTextSize / 2,
                                                                     ),
                                                                   ),
-                                                                  item.vehicleId !=
-                                                                          null
-                                                                      ? Container(
-                                                                          padding: EdgeInsets.only(
-                                                                              left: MediaQuery.of(context).size.height * listViewItemTextSize,
-                                                                              top: MediaQuery.of(context).size.height * listViewItemTextSize / 4),
-                                                                          child:
-                                                                              Text(
-                                                                            item.vehicleId,
-                                                                            style:
-                                                                                TextStyle(
-                                                                              color: Color(0xff53354a),
-                                                                              fontSize: MediaQuery.of(context).size.height * listViewItemTextSize / 2,
-                                                                            ),
-                                                                          ),
-                                                                        )
-                                                                      : Container(),
-                                                                ],
+                                                                )
+                                                              : Container(),
+                                                        ],
+                                                      ),
+                                                      Expanded(
+                                                        flex: 1,
+                                                        child:
+                                                            Container(
+                                                          width: 100.0,
+                                                          height: 100.0,
+                                                        ),
+                                                      ),
+                                                      item.timeToStation !=
+                                                              null
+                                                          ? Container(
+                                                              height: MediaQuery.of(context)
+                                                                      .size
+                                                                      .width *
+                                                                  (listViewItemHeight -
+                                                                      pullTabHeight),
+                                                              margin: EdgeInsets.only(
+                                                                  right: MediaQuery.of(context).size.width *
+                                                                      (listViewItemHeight - pullTabHeight) *
+                                                                      0.2),
+                                                              child:
+                                                                  Center(
+                                                                child: Text(
+                                                                    (item.timeToStation / 60).ceil().toString() +
+                                                                        ((item.timeToStation / 60).ceil() > 0 ? " mins" : "min"),
+                                                                    style: TextStyle(
+                                                                      color: Colors.red,
+                                                                      fontSize: MediaQuery.of(context).size.width * (listViewItemHeight - pullTabHeight) * 0.5,
+                                                                      fontWeight: FontWeight.bold,
+                                                                    )),
                                                               ),
-                                                              Expanded(
-                                                                flex: 1,
-                                                                child:
-                                                                    Container(
-                                                                  width: 100.0,
-                                                                  height: 100.0,
-                                                                ),
-                                                              ),
-                                                              item.timeToStation !=
-                                                                      null
-                                                                  ? Container(
-                                                                      height: MediaQuery.of(context)
-                                                                              .size
-                                                                              .width *
-                                                                          (listViewItemHeight -
-                                                                              pullTabHeight),
-                                                                      margin: EdgeInsets.only(
-                                                                          right: MediaQuery.of(context).size.width *
-                                                                              (listViewItemHeight - pullTabHeight) *
-                                                                              0.2),
-                                                                      child:
-                                                                          Center(
-                                                                        child: Text(
-                                                                            (item.timeToStation / 60).ceil().toString() +
-                                                                                ((item.timeToStation / 60).ceil() > 0 ? " mins" : "min"),
-                                                                            style: TextStyle(
-                                                                              color: Colors.red,
-                                                                              fontSize: MediaQuery.of(context).size.width * (listViewItemHeight - pullTabHeight) * 0.5,
-                                                                              fontWeight: FontWeight.bold,
-                                                                            )),
-                                                                      ),
-                                                                    )
-                                                                  : Container(),
-                                                            ],
-                                                          ),
-                                                        ))
+                                                            )
+                                                          : Container(),
+                                                    ],
+                                                  ),
+                                                ))
                                                 .toList();
                                         returnArrivalTimes
                                             .add(AnimatedContainer(
@@ -1128,7 +1122,8 @@ class _ListViewPageState extends State<ListViewPage> {
                                     : [Container()],
                               ),
                             ),
-                          )),
+                          )
+                  ),
                 ],
               )),
         ],

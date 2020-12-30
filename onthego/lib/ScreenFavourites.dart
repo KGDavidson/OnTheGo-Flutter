@@ -12,6 +12,7 @@ const FAVOURITES_ID_LIST_KEY = "57";
 
 final int animationDuration = 300;
 
+final double bottomNavigationBarHeight = 60;
 final double listViewTitleBarHeight = 0.15;
 final double listViewItemHeight = 0.13;
 
@@ -267,12 +268,12 @@ class _ListViewPageState extends State<ListViewPage> {
                           Row(
                             children: <Widget>[
                               Container(
-                                padding: EdgeInsets.only(left: MediaQuery.of(context).size.height * listViewTitleBarTextSize / 3, right: MediaQuery.of(context).size.height * listViewTitleBarTextSize / 3),
+                                padding: EdgeInsets.only(left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewTitleBarTextSize / 3, right: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewTitleBarTextSize / 3),
                                 child: Text(
                                   currentStop != null ? currentStop.commonName.length > 17 ? currentStop.commonName.replaceRange(18, currentStop.commonName.length, "...") : currentStop.commonName : "Favourites",
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: MediaQuery.of(context).size.height * listViewTitleBarTextSize,
+                                    fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewTitleBarTextSize,
                                   ),
                                 ),
                               ),
@@ -300,14 +301,14 @@ class _ListViewPageState extends State<ListViewPage> {
                           ),
                           currentStop != null ? Container(
                             padding: EdgeInsets.only(
-                                left: MediaQuery.of(context).size.height * listViewTitleBarTextSize / 3,
-                                top: MediaQuery.of(context).size.height * listViewTitleBarTextSize / 4
+                                left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewTitleBarTextSize / 3,
+                                top: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewTitleBarTextSize / 4
                             ),
                             child: Text(
                               "ID " + currentStop.naptanId + " | " + currentStop.lines.join(" • "),
                               style: TextStyle(
                                 color: Colors.grey,
-                                fontSize: MediaQuery.of(context).size.height * listViewTitleBarTextSize / 2,
+                                fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewTitleBarTextSize / 2,
                               ),
                             ),
                           ) : Container(),
@@ -337,7 +338,7 @@ class _ListViewPageState extends State<ListViewPage> {
                 ),
 
                 currentStop == null ? Container(
-                  height: MediaQuery.of(context).size.height - (MediaQuery.of(context).size.height * (listViewTitleBarHeight) + 15),
+                  height: MediaQuery.of(context).size.height - bottomNavigationBarHeight - (MediaQuery.of(context).size.height * (listViewTitleBarHeight)),
                   child: RefreshIndicator(
                     onRefresh: () async {
                       loading = true;
@@ -371,25 +372,25 @@ class _ListViewPageState extends State<ListViewPage> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Container(
-                                        padding: EdgeInsets.only(left: MediaQuery.of(context).size.height * listViewItemTextSize),
+                                        padding: EdgeInsets.only(left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize),
                                         child: Text(
                                           item.commonName,
                                           style: TextStyle(
                                             color: Color(0xff2b2e4a),
-                                            fontSize: MediaQuery.of(context).size.height * listViewItemTextSize,
+                                            fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize,
                                           ),
                                         ),
                                       ),
                                       item != null ? Container(
                                         padding: EdgeInsets.only(
-                                            left: MediaQuery.of(context).size.height * listViewItemTextSize,
-                                            top: MediaQuery.of(context).size.height * listViewItemTextSize / 4
+                                            left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize,
+                                            top: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize / 4
                                         ),
                                         child: Text(
                                           "ID " + item.naptanId + " | " + item.lines.join(" • "),
                                           style: TextStyle(
                                             color: Color(0xff53354a),
-                                            fontSize: MediaQuery.of(context).size.height * listViewItemTextSize / 2,
+                                            fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize / 2,
                                           ),
                                         ),
                                       ) : Container(),
@@ -419,7 +420,7 @@ class _ListViewPageState extends State<ListViewPage> {
                             ),
                           )).toList();
                           returnNearbyStops.add(Container(
-                            height: MediaQuery.of(context).size.height - (MediaQuery.of(context).size.height * (listViewTitleBarHeight) + 15),
+                            height: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) - ((MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * (listViewTitleBarHeight) + 15),
                           ));
                           return returnNearbyStops;
                         }() : [Container()],
@@ -427,7 +428,7 @@ class _ListViewPageState extends State<ListViewPage> {
                     ),
                   ),
                 ) : Container(
-                    height: MediaQuery.of(context).size.height - (MediaQuery.of(context).size.height * (listViewTitleBarHeight) + 15),
+                    height: MediaQuery.of(context).size.height - bottomNavigationBarHeight - (MediaQuery.of(context).size.height * (listViewTitleBarHeight)),
                     child: RefreshIndicator(
                       onRefresh: () async {
                         currentArrivalTimes = await fetchArrivalTimes();
@@ -470,25 +471,25 @@ class _ListViewPageState extends State<ListViewPage> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Container(
-                                        padding: EdgeInsets.only(left: MediaQuery.of(context).size.height * listViewItemTextSize),
+                                        padding: EdgeInsets.only(left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize),
                                         child: Text(
                                           item.destinationName != null ? item.destinationName.length > 20 ? item.destinationName.replaceRange(21, item.destinationName.length, "...") : item.destinationName : "",
                                           style: TextStyle(
                                             color: Color(0xff2b2e4a),
-                                            fontSize: MediaQuery.of(context).size.height * listViewItemTextSize,
+                                            fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize,
                                           ),
                                         ),
                                       ),
                                       item.vehicleId != null ? Container(
                                         padding: EdgeInsets.only(
-                                            left: MediaQuery.of(context).size.height * listViewItemTextSize,
-                                            top: MediaQuery.of(context).size.height * listViewItemTextSize / 4
+                                            left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize,
+                                            top: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize / 4
                                         ),
                                         child: Text(
                                           item.vehicleId,
                                           style: TextStyle(
                                             color: Color(0xff53354a),
-                                            fontSize: MediaQuery.of(context).size.height * listViewItemTextSize / 2,
+                                            fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize / 2,
                                           ),
                                         ),
                                       ) : Container(),
@@ -521,7 +522,7 @@ class _ListViewPageState extends State<ListViewPage> {
                             returnArrivalTimes.add(AnimatedContainer(
                               duration: Duration(milliseconds: animationDuration),
                               curve: Curves.easeOut,
-                              height: MediaQuery.of(context).size.height - (MediaQuery.of(context).size.height * (listViewTitleBarHeight) + 15),
+                              height: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) - ((MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * (listViewTitleBarHeight) + 15),
                             ));
                             return returnArrivalTimes;
                           }() : [Container()],
