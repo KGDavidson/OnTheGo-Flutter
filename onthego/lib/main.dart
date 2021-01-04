@@ -1,37 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_admob_app_open/flutter_admob_app_open.dart';
+import 'package:admob_flutter/admob_flutter.dart';
 import 'package:onthego/ScreenFavourites.dart';
 import 'ScreenNearby.dart';
 import 'ScreenFavourites.dart';
 import 'ScreenRoutePlanner.dart';
 
 final double bottomNavigationBarHeight = 60;
+bool run = false;
 
 void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
+  Admob.initialize();
+  await Admob.requestTrackingAuthorization();
 
-  /// Replace your admob app ID
-  final admobAppId = "ca-app-pub-7358346462538405~1328453994";
+  String appId = "ca-app-pub-7358346462538405~1328453994";
 
-  /// Replace your admob app open ad unit id
-  final appAppOpenAdUnitId = "ca-app-pub-7358346462538405/8380129268";
+  AdmobInterstitial  interstitialAd;
 
-  MobileAdTargetingInfo targetingInfo = MobileAdTargetingInfo(
-    keywords: <String>['flutterio', 'beautiful apps'],
-    contentUrl: 'https://flutter.io',
-    birthday: DateTime.now(),
-    childDirected: false,
-    designedForFamilies: false,
-    gender: MobileAdGender.male, // or MobileAdGender.female, MobileAdGender.unknown
-    testDevices: <String>[], // Android emulators are considered test devices
+  void handleEvent(
+      AdmobAdEvent event, Map<String, dynamic> args, String adType) {
+    switch (event) {
+      case AdmobAdEvent.loaded:
+        if (!run) {
+          interstitialAd.show();
+        }
+        run = true;
+      //('New Admob $adType Ad loaded!');
+        break;
+      case AdmobAdEvent.opened:
+      //('Admob $adType Ad opened!');
+        break;
+      case AdmobAdEvent.closed:
+      //('Admob $adType Ad closed!');
+        break;
+      case AdmobAdEvent.failedToLoad:
+      //('Admob $adType failed to load. :(');
+        break;
+      default:
+    }
+  }
+
+  interstitialAd = AdmobInterstitial(
+    adUnitId: "ca-app-pub-7358346462538405/6796419005",
+    listener: (AdmobAdEvent event, Map<String, dynamic> args) {
+      if (event == AdmobAdEvent.closed) interstitialAd.load();
+      handleEvent(event, args, 'Interstitial');
+    },
   );
 
-  await FlutterAdmobAppOpen.instance.initialize(
-    appId: admobAppId,
-    appAppOpenAdUnitId: appAppOpenAdUnitId,
-  );
+  interstitialAd.load();
 
   runApp(MyApp());
 }
