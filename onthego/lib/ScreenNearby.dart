@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'dart:convert';
 
 import 'globals.dart';
+import 'global_class.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:location/location.dart';
@@ -11,101 +12,28 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 
-final MapController mapController = MapController();
-final Location location = new Location();
+MapController mapController = MapController();
 
 int selectedToggle = 0;
 double lastPosition = 0;
 double mapHeight = INITIAL_MAP_HEIGHT;
-double currentBlurValue = 0;
 
 bool pullTabIcon = true;
 bool loading = false;
 
-LocationData currentLocation;
-
-Stop currentStop;
-List<Stop> currentNearbyStops;
-List<ArrivalTime> currentArrivalTimes;
-List currentFavorites = [];
-
-readFavourites() async {
-  final prefs = await SharedPreferences.getInstance();
-  final value = prefs.getStringList(FAVOURITES_ID_LIST_KEY) ?? [];
-  currentFavorites = value;
-}
-
-writeFavourites() async {
-  final prefs = await SharedPreferences.getInstance();
-  prefs.setStringList(FAVOURITES_ID_LIST_KEY, currentFavorites);
-}
-
-class Stop {
-  final String stopLetter;
-  final String commonName;
-  final String naptanId;
-  final double distance;
-  final double lat;
-  final double lon;
-  final List lines;
-
-  Stop(
-      {this.stopLetter,
-        this.commonName,
-        this.naptanId,
-        this.distance,
-        this.lat,
-        this.lon,
-        this.lines});
-
-  factory Stop.fromJson(Map<String, dynamic> json) {
-    return Stop(
-      stopLetter: json['indicator'],
-      commonName: json['commonName'],
-      naptanId: json["naptanId"],
-      distance: json['distance'],
-      lat: json['lat'],
-      lon: json['lon'],
-      lines: json['lines'].map((item) => item["name"]).toList(),
-    );
-  }
-}
-
-class ArrivalTime {
-  final String vehicleId;
-  final String lineName;
-  final String destinationName;
-  final int timeToStation;
-
-  ArrivalTime(
-      {this.vehicleId,
-        this.lineName,
-        this.timeToStation,
-        this.destinationName});
-
-  factory ArrivalTime.fromJson(Map<String, dynamic> json) {
-    return ArrivalTime(
-      vehicleId: json['vehicleId'],
-      lineName: json['lineName'],
-      destinationName: json["destinationName"],
-      timeToStation: json['timeToStation'],
-    );
-  }
-}
-
 bool back(setState) {
-  if (currentStop != null) {
-    currentStop = null;
+  if (currentStopNearby != null) {
+    currentStopNearby = null;
     setState(() {});
   }
   return false;
 }
 
 List<Widget> buildArrivalTimes(context) {
-    if (currentArrivalTimes == null) {
+    if (currentArrivalTimesNearby == null) {
       return [Container()];
     }
-    List<Widget> arrivalTimes = currentArrivalTimes.map((item) => AnimatedContainer(
+    List<Widget> arrivalTimes = currentArrivalTimesNearby.map((item) => AnimatedContainer(
           duration: Duration(
               milliseconds:
               ANIMATION_DURATION),
@@ -249,7 +177,7 @@ List<Widget> buildNearbyStops(context, setState) {
         LIST_VIEW_ITEM_HEIGHT,
     child: TextButton(
       onPressed: () async {
-        currentStop = item;
+        currentStopNearby = item;
         await loadArrivalTimes(setState);
       },
       style: TextButton.styleFrom(
@@ -414,8 +342,8 @@ Future<void> loadArrivalTimes(setState) async {
   setState(() {
     loading = true;
   });
-  mapController.move(LatLng(currentStop.lat, currentStop.lon), mapController.zoom);
-  String id = currentStop.naptanId;
+  mapController.move(LatLng(currentStopNearby.lat, currentStopNearby.lon), mapController.zoom);
+  String id = currentStopNearby.naptanId;
   String urlString = "https://api.tfl.gov.uk/StopPoint/$id/Arrivals";
 
   var uri = Uri.parse(urlString);
@@ -423,7 +351,7 @@ Future<void> loadArrivalTimes(setState) async {
   final response = await http.get(uri);
   if (response.statusCode == 200) {
     List arrivalTimes = jsonDecode(response.body);
-    currentArrivalTimes = arrivalTimes.map((arrivalTime) => ArrivalTime.fromJson(arrivalTime)).toList();
+    currentArrivalTimesNearby = arrivalTimes.map((arrivalTime) => ArrivalTime.fromJson(arrivalTime)).toList();
   }
   setState(() {
     loading = false;
@@ -436,7 +364,7 @@ Future<void> loadClosestStopArrivalTimes(setState) async {
     loading = true;
   });
   await loadNearbyStops(setState);
-  currentStop = currentNearbyStops[0];
+  currentStopNearby = currentNearbyStops[0];
   await loadArrivalTimes(setState);
   setState(() {
     loading = false;
@@ -448,14 +376,27 @@ class ScreenNearby extends StatefulWidget {
   _ScreenNearby createState() => _ScreenNearby();
 }
 
-class _ScreenNearby extends State<ScreenNearby> with AutomaticKeepAliveClientMixin<ScreenNearby>{
-  @override
-  bool get wantKeepAlive => true;
+class _ScreenNearby extends State<ScreenNearby>{
 
   @override
   void initState() {
     super.initState();
-    loadClosestStopArrivalTimes(setState);
+    if (firstOpen) {
+      firstOpen = false;
+      loadClosestStopArrivalTimes(setState);
+    } else {
+      if (favouritesChanged) {
+        favouritesChanged = false;
+        if (currentStopNearby == null) {
+          loadNearbyStops(setState);
+        } else {
+          loadArrivalTimes(setState);
+        }
+      }
+    }
+    if (currentLocation != null) {
+      mapController = MapController();
+    }
   }
 
   @override
@@ -625,7 +566,7 @@ class _MapViewState extends State<MapView> {
           child: FlutterMap(
             mapController: mapController,
             options: new MapOptions(
-              center: LatLng(51.507351, -0.127758),
+              center: currentLocation == null ? LatLng(51.507351, -0.127758) : LatLng(currentLocation.latitude, currentLocation.longitude),
               zoom: 13.0,
               maxZoom: 17.5,
             ),
@@ -649,13 +590,13 @@ class _MapViewState extends State<MapView> {
                       builder: (ctx) => GestureDetector(
                         child: Icon(
                           Icons.location_pin,
-                          size: currentStop == item ? 38.5 : 30.5,
-                          color: Color(currentStop == item
+                          size: currentStopNearby == item ? 38.5 : 30.5,
+                          color: Color(currentStopNearby == item
                               ? 0xffe84545
                               : 0x802b2e4a),
                         ),
                         onTap: () async {
-                          currentStop = item;
+                          currentStopNearby = item;
                           loadArrivalTimes(this.widget.setStateParent);
                         },
                       ),
@@ -700,25 +641,19 @@ class _MapViewState extends State<MapView> {
             } else {
               pullTabIcon = true;
             }
-            currentBlurValue = 2 *
-                ((mapHeight - INITIAL_MAP_HEIGHT) /
-                    (MAX_MAP_HEIGHT - INITIAL_MAP_HEIGHT));
             setState(() {});
           },
           onVerticalDragEnd: (details) {
             if (MAX_MAP_HEIGHT - mapHeight < 10) {
               mapHeight = MAX_MAP_HEIGHT;
               pullTabIcon = false;
-              currentBlurValue = 2;
             } else {
               if (details.primaryVelocity > 0) {
                 mapHeight = MAX_MAP_HEIGHT;
                 pullTabIcon = false;
-                currentBlurValue = 2;
               } else {
                 mapHeight = INITIAL_MAP_HEIGHT;
                 pullTabIcon = true;
-                currentBlurValue = 0;
               }
             }
             setState(() {});
@@ -784,7 +719,7 @@ class _ListViewPageState extends State<ListViewPage> {
                 children: <Widget>[
                   IconButton(
                       icon: Icon(
-                        currentStop != null ? Icons.arrow_back : null,
+                        currentStopNearby != null ? Icons.arrow_back : null,
                         color: Colors.white,
                       ),
                       onPressed: () {
@@ -814,15 +749,15 @@ class _ListViewPageState extends State<ListViewPage> {
                                     LIST_VIEW_TITLE_BAR_TEXT_SIZE,
                               ),
                             ) : Text(
-                              currentStop != null
-                                  ? currentStop.commonName.length > 17
-                                  ? currentStop.commonName
+                              currentStopNearby != null
+                                  ? currentStopNearby.commonName.length > 17
+                                  ? currentStopNearby.commonName
                                   .replaceRange(
                                   18,
-                                  currentStop
+                                  currentStopNearby
                                       .commonName.length,
                                   "...")
-                                  : currentStop.commonName
+                                  : currentStopNearby.commonName
                                   : "Nearby Stops",
                               style: TextStyle(
                                 color: Colors.white,
@@ -832,9 +767,23 @@ class _ListViewPageState extends State<ListViewPage> {
                               ),
                             ),
                           ),
-                          currentStop != null
+                          currentStopNearby != null
                               ? GestureDetector(
                               onTap: () {
+                                if (currentFavourites.contains(currentStopNearby.naptanId)) {
+                                  currentFavourites.removeWhere(
+                                          (item) =>
+                                      item ==
+                                          currentStopNearby.naptanId);
+                                  writeFavourites();
+                                  setState(() {});
+                                } else {
+                                  currentFavourites
+                                      .add(currentStopNearby.naptanId);
+                                  writeFavourites();
+                                  setState(() {});
+                                }
+                                favouritesChanged = true;
                               },
                               child: Container(
                                 padding: EdgeInsets.only(
@@ -848,17 +797,14 @@ class _ListViewPageState extends State<ListViewPage> {
                                   color: Color(0xff2b2e4a),
                                 ),
                                 child: Icon(
-                                  currentFavorites.contains(
-                                      currentStop.naptanId)
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
+                                  currentFavourites.contains(currentStopNearby.naptanId.toString()) ? Icons.favorite : Icons.favorite_border,
                                   color: Color(0xffe84545),
                                 ),
                               ))
                               : Container(),
                         ],
                       ),
-                      currentStop != null
+                      currentStopNearby != null
                           ? Container(
                         padding: EdgeInsets.only(
                             left:
@@ -871,9 +817,9 @@ class _ListViewPageState extends State<ListViewPage> {
                                 4),
                         child: Text(
                           "ID " +
-                              currentStop.naptanId +
+                              currentStopNearby.naptanId +
                               " | " +
-                              currentStop.lines.join(" • "),
+                              currentStopNearby.lines.join(" • "),
                           style: TextStyle(
                             color: Colors.grey,
                             fontSize:
@@ -893,7 +839,7 @@ class _ListViewPageState extends State<ListViewPage> {
                       height: 100.0,
                     ),
                   ),
-                  currentStop != null
+                  currentStopNearby != null
                       ? Container(
                     height: MediaQuery.of(context).size.width *
                         (LIST_VIEW_TITLE_BAR_HEIGHT - PULL_TAB_HEIGHT) *
@@ -924,11 +870,11 @@ class _ListViewPageState extends State<ListViewPage> {
                                   15);
                               setState(() {});*/
                             },
-                            child: currentStop.stopLetter == null ||
-                                currentStop.stopLetter
+                            child: currentStopNearby.stopLetter == null ||
+                                currentStopNearby.stopLetter
                                     .toString()
                                     .contains("->") ||
-                                currentStop.stopLetter == "Stop"
+                                currentStopNearby.stopLetter == "Stop"
                                 ? selectedToggle == 0
                                 ? Icon(
                               Icons.directions_bus,
@@ -939,7 +885,7 @@ class _ListViewPageState extends State<ListViewPage> {
                               color: Colors.white,
                             )
                                 : Text(
-                              currentStop.stopLetter
+                              currentStopNearby.stopLetter
                                   .split("Stop ")[1],
                               style: TextStyle(
                                 color: Colors.white,
@@ -966,7 +912,7 @@ class _ListViewPageState extends State<ListViewPage> {
             ) : Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
-                  if (currentStop == null) {
+                  if (currentStopNearby == null) {
                     loadNearbyStops(setState);
                   } else {
                     loadArrivalTimes(setState);
@@ -975,7 +921,7 @@ class _ListViewPageState extends State<ListViewPage> {
                 child: SingleChildScrollView(
                   physics: AlwaysScrollableScrollPhysics(),
                   child: Column(
-                    children: currentStop == null ? buildNearbyStops(context, setState) : buildArrivalTimes(context)
+                    children: currentStopNearby == null ? buildNearbyStops(context, setState) : buildArrivalTimes(context)
                   ),
                 ),
               ),

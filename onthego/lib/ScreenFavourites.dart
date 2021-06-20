@@ -5,81 +5,134 @@ import 'dart:convert';
 import 'dart:math' show cos, sqrt, asin;
 
 import 'globals.dart';
+import 'global_class.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:location/location.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 
 bool loading = false;
-bool favouritesChanged = false;
 
-Position currentLocation;
-
-Stop currentStop;
-List currentFavouriteStops;
-List currentArrivalTimes;
-List currentFavourites = [];
-
-readFavourites() async {
-  final prefs = await SharedPreferences.getInstance();
-  final value = prefs.getStringList(FAVOURITES_ID_LIST_KEY) ?? [];
-  currentFavourites = value;
-}
-
-writeFavourites() async {
-  final prefs = await SharedPreferences.getInstance();
-  prefs.setStringList(FAVOURITES_ID_LIST_KEY, currentFavourites);
-  print('saved $currentFavourites');
-}
-
-class Stop {
-  final String stopLetter;
-  final String commonName;
-  final String naptanId;
-  final double lat;
-  final double lon;
-  final List lines;
-
-  Stop({this.stopLetter, this.commonName, this.naptanId, this.lat, this.lon, this.lines});
-
-  factory Stop.fromJson(Map<String, dynamic> json) {
-    return Stop(
-      stopLetter: json['indicator'],
-      commonName: json['commonName'],
-      naptanId: json["naptanId"],
-      lat: json["lat"],
-      lon: json["lon"],
-      lines: json['lines'].map((item) => item["name"]).toList(),
-    );
+bool back(setState) {
+  if (currentStopFavourites != null) {
+    currentStopFavourites = null;
+    setState(() {});
+    if (favouritesChanged) {
+      favouritesChanged = false;
+      loading = true;
+      setState(() {});
+      readFavourites().then((ret) async {
+        currentFavouriteStops = await fetchFavouriteStops();
+        loading = false;
+        setState(() {});
+      });
+    }
+    setState(() {});
   }
-}
 
-class ArrivalTime {
-  final String vehicleId;
-  final String lineName;
-  final String destinationName;
-  final int timeToStation;
-
-  ArrivalTime({this.vehicleId, this.lineName, this.timeToStation, this.destinationName});
-
-  factory ArrivalTime.fromJson(Map<String, dynamic> json) {
-    return ArrivalTime(
-      vehicleId: json['vehicleId'],
-      lineName: json['lineName'],
-      destinationName: json["destinationName"],
-      timeToStation: json['timeToStation'],
-    );
+  if (currentStopFavourites != null) {
+    currentStopFavourites = null;
+    setState(() {});
   }
+  return false;
 }
 
-getCurrentLocation() async{
-  await Geolocator
-      .getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
-      .then((Position position) async {
-        currentLocation = position;
-  }).catchError((e) {
-    print(e);
+List<Widget> buildFavourites(context, setState) {
+  List returnNearbyStops = currentFavouriteStops.map((item) => Container(
+    height: MediaQuery.of(context).size.width * LIST_VIEW_ITEM_HEIGHT,
+    child: FlatButton(
+      onPressed: () async {
+        currentStopFavourites = item;
+        loadArrivalTimes(setState);
+      },
+      color: Color(0xffe8e8e8),
+      child: Row(
+        children: <Widget>[
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: EdgeInsets.only(left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE),
+                child: Text(
+                  item.commonName,
+                  style: TextStyle(
+                    color: Color(0xff2b2e4a),
+                    fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE,
+                  ),
+                ),
+              ),
+              item != null ? Container(
+                padding: EdgeInsets.only(
+                    left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE,
+                    top: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE / 4
+                ),
+                child: Text(
+                  "ID " + item.naptanId + " | " + item.lines.join(" • "),
+                  style: TextStyle(
+                    color: Color(0xff53354a),
+                    fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE / 2,
+                  ),
+                ),
+              ) : Container(),
+            ],
+          ),
+          Expanded(
+            flex: 1,
+            child: Container(
+              width: 100.0,
+              height: 100.0,
+            ),
+          ),
+          item != null ? Container(
+            height: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT) * 0.6,
+            width: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT) * 0.6,
+            margin: EdgeInsets.only(right: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT) * 0.2),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.all(Radius.circular(MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT) * 0.6)),
+              color: Color(0xffe84545),
+            ),
+            child: Center(
+              child: item.stopLetter == null || item.stopLetter.toString().contains("->") || item.stopLetter == "Stop" ? Icon(Icons.train, color: Colors.white,) : Text(item.stopLetter.split("Stop ")[1], style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),),
+            ),
+          ) : Container(),
+        ],
+      ),
+    ),
+  )).toList();
+  returnNearbyStops.add(Container(
+    height: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) - ((MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES) + 15),
+  ));
+  return returnNearbyStops;
+}
+
+Future<void> getCurrentLocation() async {
+  currentLocation = await location.getLocation();
+  return;
+}
+
+Future<void> loadArrivalTimes(setState) async {
+  setState(() {
+    loading = true;
   });
+  String id = currentStopFavourites.naptanId;
+  String urlString = "https://api.tfl.gov.uk/StopPoint/$id/Arrivals";
+
+  var uri = Uri.parse(urlString);
+
+  final response = await http.get(uri);
+  if (response.statusCode == 200) {
+    List arrivalTimes = jsonDecode(response.body);
+    currentArrivalTimesFavourites = arrivalTimes.map((arrivalTime) => ArrivalTime.fromJson(arrivalTime)).toList();
+    currentArrivalTimesFavourites.sort((a, b) {
+      return a.timeToStation.compareTo(b.timeToStation);
+    });
+  }
+  setState(() {
+    loading = false;
+  });
+  return;
 }
 
 double calculateDistance(lat1, lon1, lat2, lon2){
@@ -105,8 +158,7 @@ Future<List> fetchFavouriteStops() async {
 }
 
 Future<Stop> fetchFavouriteStop(String naptanId) async {
-  String url = 'https://api.tfl.gov.uk/Stoppoint/' + naptanId;
-  print("///" + url);
+  String url = 'https://api.tfl.gov.uk/Stoppoint/$naptanId';
   final response = await http.get(Uri.parse(url));
 
   if (response.statusCode == 200){
@@ -139,40 +191,26 @@ Future<Stop> fetchFavouriteStop(String naptanId) async {
   }
 }
 
-Future<List> fetchArrivalTimes() async {
-  String url = 'https://api.tfl.gov.uk/Stoppoint/';
-  url += currentStop.naptanId;
-  url += "/arrivals";
-  print(url);
-  final response = await http.get(Uri.parse(url));
-
-  if (response.statusCode == 200) {
-    return jsonDecode(response.body).map((arrivalTime) => ArrivalTime.fromJson(arrivalTime)).toList();
-  } else {
-    throw Exception('Failed to load');
-  }
-}
-
 class ScreenFavourites extends StatefulWidget {
   @override
   _ScreenFavourites createState() => _ScreenFavourites();
 }
 
 
-class _ScreenFavourites extends State<ScreenFavourites> with AutomaticKeepAliveClientMixin<ScreenFavourites>{
-  @override
-  bool get wantKeepAlive => true;
+class _ScreenFavourites extends State<ScreenFavourites>{
 
   @override
   void initState() {
     super.initState();
-    loading = true;
     setState(() {});
-    readFavourites().then((ret) async {
-      currentFavouriteStops = await fetchFavouriteStops();
-      loading = false;
-      setState(() {});
-    });
+    if (favouritesChanged) {
+      loading = true;
+      readFavourites().then((ret) async {
+        currentFavouriteStops = await fetchFavouriteStops();
+        loading = false;
+        setState(() {});
+      });
+    }
   }
 
   void reloadPage() async {
@@ -209,20 +247,9 @@ class _ListViewPageState extends State<ListViewPage> {
               child: Row(
                 children: <Widget>[
                   IconButton(
-                      icon: Icon(currentStop != null ? Icons.arrow_back : null, color: Colors.white,),
+                      icon: Icon(currentStopFavourites != null ? Icons.arrow_back : null, color: Colors.white,),
                       onPressed: () async {
-                        currentStop = null;
-                        this.widget.reloadPage();
-                        if (favouritesChanged) {
-                          favouritesChanged = false;
-                          loading = true;
-                          this.widget.reloadPage();
-                          readFavourites().then((ret) async {
-                            currentFavouriteStops = await fetchFavouriteStops();
-                            loading = false;
-                            this.widget.reloadPage();
-                          });
-                        }
+                        back(setState);
                       }
                   ),
                   Column(
@@ -234,19 +261,19 @@ class _ListViewPageState extends State<ListViewPage> {
                           Container(
                             padding: EdgeInsets.only(left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_TITLE_BAR_TEXT_SIZE / 3, right: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_TITLE_BAR_TEXT_SIZE / 3),
                             child: Text(
-                              currentStop != null ? currentStop.commonName.length > 17 ? currentStop.commonName.replaceRange(18, currentStop.commonName.length, "...") : currentStop.commonName : "Favourites",
+                              currentStopFavourites != null ? currentStopFavourites.commonName.length > 17 ? currentStopFavourites.commonName.replaceRange(18, currentStopFavourites.commonName.length, "...") : currentStopFavourites.commonName : "Favourites",
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_TITLE_BAR_TEXT_SIZE,
                               ),
                             ),
                           ),
-                          currentStop != null ? GestureDetector(
+                          currentStopFavourites != null ? GestureDetector(
                               onTap: () {
-                                if (currentFavourites.contains(currentStop.naptanId)) {
-                                  currentFavourites.removeWhere((item) => item == currentStop.naptanId);
+                                if (currentFavourites.contains(currentStopFavourites.naptanId)) {
+                                  currentFavourites.removeWhere((item) => item == currentStopFavourites.naptanId);
                                 } else {
-                                  currentFavourites.add(currentStop.naptanId);
+                                  currentFavourites.add(currentStopFavourites.naptanId);
                                 }
                                 writeFavourites();
                                 favouritesChanged = true;
@@ -258,18 +285,18 @@ class _ListViewPageState extends State<ListViewPage> {
                                   borderRadius: BorderRadius.circular(100),
                                   color: Color(0xff2b2e4a),
                                 ),
-                                child: Icon(currentFavourites.contains(currentStop.naptanId) ? Icons.favorite : Icons.favorite_border, color: Color(0xffe84545),),
+                                child: Icon(currentFavourites.contains(currentStopFavourites.naptanId) ? Icons.favorite : Icons.favorite_border, color: Color(0xffe84545),),
                               )
                           ) : Container(),
                         ],
                       ),
-                      currentStop != null ? Container(
+                      currentStopFavourites != null ? Container(
                         padding: EdgeInsets.only(
                             left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_TITLE_BAR_TEXT_SIZE / 3,
                             top: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_TITLE_BAR_TEXT_SIZE / 4
                         ),
                         child: Text(
-                          "ID " + currentStop.naptanId + " | " + currentStop.lines.join(" • "),
+                          "ID " + currentStopFavourites.naptanId + " | " + currentStopFavourites.lines.join(" • "),
                           style: TextStyle(
                             color: Colors.grey,
                             fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_TITLE_BAR_TEXT_SIZE / 2,
@@ -285,7 +312,7 @@ class _ListViewPageState extends State<ListViewPage> {
                       height: 100.0,
                     ),
                   ),
-                  currentStop != null ? Container(
+                  currentStopFavourites != null ? Container(
                     height: MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES) * 0.6,
                     width: MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES) * 0.6,
                     margin: EdgeInsets.only(right: MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES) * 0.2),
@@ -294,14 +321,18 @@ class _ListViewPageState extends State<ListViewPage> {
                       color: Color(0xffe84545),
                     ),
                     child: Center(
-                        child: currentStop.stopLetter == null || currentStop.stopLetter.toString().contains("->") || currentStop.stopLetter == "Stop" ? Icon(Icons.train, color: Colors.white,) : Text(currentStop.stopLetter.split("Stop ")[1], style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize:  MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES) * 0.6 * 0.4,),)
+                        child: currentStopFavourites.stopLetter == null || currentStopFavourites.stopLetter.toString().contains("->") || currentStopFavourites.stopLetter == "Stop" ? Icon(Icons.train, color: Colors.white,) : Text(currentStopFavourites.stopLetter.split("Stop ")[1], style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize:  MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES) * 0.6 * 0.4,),)
                     ),
                   ) : Container(),
                 ],
               ),
             ),
-
-            currentStop == null ? Container(
+            loading ? Expanded(
+              child: Center (
+                child: CircularProgressIndicator(),
+              )
+            ) :
+            currentStopFavourites == null ? Container(
               height: MediaQuery.of(context).size.height - BOTTOM_NAVIGATION_BAR_HEIGHT - (MediaQuery.of(context).size.height * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES)),
               child: RefreshIndicator(
                 onRefresh: () async {
@@ -316,78 +347,7 @@ class _ListViewPageState extends State<ListViewPage> {
                 child: SingleChildScrollView(
                   physics: AlwaysScrollableScrollPhysics(),
                   child: Column(
-                    children: currentFavouriteStops != null ? () {
-                      List returnNearbyStops = currentFavouriteStops.map((item) => Container(
-                        height: MediaQuery.of(context).size.width * LIST_VIEW_ITEM_HEIGHT,
-                        child: FlatButton(
-                          onPressed: () async {
-                            currentStop = item;
-                            currentArrivalTimes = await fetchArrivalTimes();
-                            currentArrivalTimes.sort((a, b) {
-                              return a.timeToStation.compareTo(b.timeToStation);
-                            });
-                            setState(() {});
-                          },
-                          color: Color(0xffe8e8e8),
-                          child: Row(
-                            children: <Widget>[
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.only(left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE),
-                                    child: Text(
-                                      item.commonName,
-                                      style: TextStyle(
-                                        color: Color(0xff2b2e4a),
-                                        fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE,
-                                      ),
-                                    ),
-                                  ),
-                                  item != null ? Container(
-                                    padding: EdgeInsets.only(
-                                        left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE,
-                                        top: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE / 4
-                                    ),
-                                    child: Text(
-                                      "ID " + item.naptanId + " | " + item.lines.join(" • "),
-                                      style: TextStyle(
-                                        color: Color(0xff53354a),
-                                        fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE / 2,
-                                      ),
-                                    ),
-                                  ) : Container(),
-                                ],
-                              ),
-                              Expanded(
-                                flex: 1,
-                                child: Container(
-                                  width: 100.0,
-                                  height: 100.0,
-                                ),
-                              ),
-                              item != null ? Container(
-                                height: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT) * 0.6,
-                                width: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT) * 0.6,
-                                margin: EdgeInsets.only(right: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT) * 0.2),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.all(Radius.circular(MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT) * 0.6)),
-                                  color: Color(0xffe84545),
-                                ),
-                                child: Center(
-                                  child: item.stopLetter == null || item.stopLetter.toString().contains("->") || item.stopLetter == "Stop" ? Icon(Icons.train, color: Colors.white,) : Text(item.stopLetter.split("Stop ")[1], style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),),
-                                ),
-                              ) : Container(),
-                            ],
-                          ),
-                        ),
-                      )).toList();
-                      returnNearbyStops.add(Container(
-                        height: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) - ((MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES) + 15),
-                      ));
-                      return returnNearbyStops;
-                    }() : [Container()],
+                    children: currentFavouriteStops != null ? buildFavourites(context, setState) : [Container()],
                   ),
                 ),
               ),
@@ -395,17 +355,13 @@ class _ListViewPageState extends State<ListViewPage> {
                 height: MediaQuery.of(context).size.height - BOTTOM_NAVIGATION_BAR_HEIGHT - (MediaQuery.of(context).size.height * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES)),
                 child: RefreshIndicator(
                   onRefresh: () async {
-                    currentArrivalTimes = await fetchArrivalTimes();
-                    currentArrivalTimes.sort((a, b) {
-                      return a.timeToStation.compareTo(b.timeToStation);
-                    });
-                    setState(() {});
+                    await loadArrivalTimes(setState);
                   },
                   child: SingleChildScrollView(
                     physics: AlwaysScrollableScrollPhysics(),
                     child: Column(
-                      children: currentArrivalTimes != null ? () {
-                        List returnArrivalTimes = currentArrivalTimes.map((item) => AnimatedContainer(
+                      children: currentArrivalTimesFavourites != null ? () {
+                        List returnArrivalTimes = currentArrivalTimesFavourites.map((item) => AnimatedContainer(
                           duration: Duration(milliseconds: ANIMATION_DURATION),
                           curve: Curves.easeOut,
                           color: Color(0xffe8e8e8),
@@ -499,21 +455,3 @@ class _ListViewPageState extends State<ListViewPage> {
     );
   }
 }
-
-class LoadingOverlay extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-        child: Container(
-          color: Colors.black.withOpacity(0.5),
-          child: Center(
-            child: CircularProgressIndicator(),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
