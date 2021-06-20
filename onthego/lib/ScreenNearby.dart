@@ -394,7 +394,7 @@ Future<void> loadNearbyStops(setState) async {
   String stopTypes = busTrain[selectedToggle];
   String latitude = currentLocation.latitude.toString();
   String longitude = currentLocation.longitude.toString();
-  mapController.move(LatLng(currentLocation.latitude, currentLocation.longitude), 15);
+  mapController.move(LatLng(currentLocation.latitude, currentLocation.longitude), mapController.zoom);
   String urlString = "https://api.tfl.gov.uk/StopPoint?stoptypes=$stopTypes&radius=1000&lat=$latitude&lon=$longitude";
 
   var uri = Uri.parse(urlString);
@@ -414,7 +414,7 @@ Future<void> loadArrivalTimes(setState) async {
   setState(() {
     loading = true;
   });
-  mapController.move(LatLng(currentStop.lat, currentStop.lon), 15);
+  mapController.move(LatLng(currentStop.lat, currentStop.lon), mapController.zoom);
   String id = currentStop.naptanId;
   String urlString = "https://api.tfl.gov.uk/StopPoint/$id/Arrivals";
 
@@ -467,7 +467,7 @@ class _ScreenNearby extends State<ScreenNearby> with AutomaticKeepAliveClientMix
       child: Stack(
         children: <Widget>[
           ListViewPage(),
-          MapView(),
+          MapView(setState),
           TopToggleBar(setState),
         ],
       ),
@@ -603,6 +603,10 @@ class _TopToggleBarState extends State<TopToggleBar> {
 }
 
 class MapView extends StatefulWidget {
+  Function setStateParent;
+
+  MapView(this.setStateParent);
+
   @override
   _MapViewState createState() => _MapViewState();
 }
@@ -651,6 +655,8 @@ class _MapViewState extends State<MapView> {
                               : 0x802b2e4a),
                         ),
                         onTap: () async {
+                          currentStop = item;
+                          loadArrivalTimes(this.widget.setStateParent);
                         },
                       ),
                     ),
