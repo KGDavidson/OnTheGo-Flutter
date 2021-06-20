@@ -394,6 +394,7 @@ Future<void> loadNearbyStops(setState) async {
   String stopTypes = busTrain[selectedToggle];
   String latitude = currentLocation.latitude.toString();
   String longitude = currentLocation.longitude.toString();
+  mapController.move(LatLng(currentLocation.latitude, currentLocation.longitude), 15);
   String urlString = "https://api.tfl.gov.uk/StopPoint?stoptypes=$stopTypes&radius=1000&lat=$latitude&lon=$longitude";
 
   var uri = Uri.parse(urlString);
@@ -413,6 +414,7 @@ Future<void> loadArrivalTimes(setState) async {
   setState(() {
     loading = true;
   });
+  mapController.move(LatLng(currentStop.lat, currentStop.lon), 15);
   String id = currentStop.naptanId;
   String urlString = "https://api.tfl.gov.uk/StopPoint/$id/Arrivals";
 
