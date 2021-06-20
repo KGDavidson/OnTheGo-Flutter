@@ -4,20 +4,11 @@ import 'dart:ui';
 import 'dart:convert';
 import 'dart:math' show cos, sqrt, asin;
 
+import 'globals.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
-
-const FAVOURITES_ID_LIST_KEY = "57";
-
-final int animationDuration = 300;
-
-final double bottomNavigationBarHeight = 60;
-final double listViewTitleBarHeight = 0.15;
-final double listViewItemHeight = 0.13;
-
-final double listViewTitleBarTextSize = 0.025;
-final double listViewItemTextSize = 0.02;
 
 bool loading = false;
 bool favouritesChanged = false;
@@ -116,7 +107,7 @@ Future<List> fetchFavouriteStops() async {
 Future<Stop> fetchFavouriteStop(String naptanId) async {
   String url = 'https://api.tfl.gov.uk/Stoppoint/' + naptanId;
   print("///" + url);
-  final response = await http.get(url);
+  final response = await http.get(Uri.parse(url));
 
   if (response.statusCode == 200){
     if (jsonDecode(response.body)["naptanId"] == naptanId) {
@@ -153,7 +144,7 @@ Future<List> fetchArrivalTimes() async {
   url += currentStop.naptanId;
   url += "/arrivals";
   print(url);
-  final response = await http.get(url);
+  final response = await http.get(Uri.parse(url));
 
   if (response.statusCode == 200) {
     return jsonDecode(response.body).map((arrivalTime) => ArrivalTime.fromJson(arrivalTime)).toList();
@@ -168,8 +159,9 @@ class ScreenFavourites extends StatefulWidget {
 }
 
 
-class _ScreenFavourites extends State<ScreenFavourites> {
-  List futureAlbum;
+class _ScreenFavourites extends State<ScreenFavourites> with AutomaticKeepAliveClientMixin<ScreenFavourites>{
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -189,33 +181,7 @@ class _ScreenFavourites extends State<ScreenFavourites> {
 
   @override
   Widget build(BuildContext context) {
-
-    return WillPopScope(
-      onWillPop:() async {
-        if (currentStop != null) {
-          currentStop = null;
-          setState(() {});
-          if (favouritesChanged) {
-            favouritesChanged = false;
-            loading = true;
-            setState(() {});
-            readFavourites().then((ret) async {
-              currentFavouriteStops = await fetchFavouriteStops();
-              loading = false;
-              setState(() {});
-            });
-          }
-          return false;
-        }
-        return true;
-      },
-      child: Stack(
-        children: <Widget>[
-          ListViewPage(reloadPage),
-          loading ? LoadingOverlay() : Container(),
-        ],
-      ),
-    );
+    return ListViewPage(reloadPage);
   }
 }
 
@@ -231,309 +197,305 @@ class ListViewPage extends StatefulWidget {
 class _ListViewPageState extends State<ListViewPage> {
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: <Widget>[
-        Container(
-            color: Color(0xffe8e8e8),
-            child: Column(
-              children: <Widget>[
-                AnimatedContainer(
-                  duration: Duration(milliseconds: animationDuration),
-                  curve: Curves.easeOut,
-                  color: Color(0xff903749),
-                  height: MediaQuery.of(context).size.width * listViewTitleBarHeight,
-                  child: Row(
-                    children: <Widget>[
-                      IconButton(
-                          icon: Icon(currentStop != null ? Icons.arrow_back : null, color: Colors.white,),
-                          onPressed: () async {
-                            currentStop = null;
+    return Container(
+        color: Color(0xffe8e8e8),
+        child: Column(
+          children: <Widget>[
+            AnimatedContainer(
+              duration: Duration(milliseconds: ANIMATION_DURATION),
+              curve: Curves.easeOut,
+              color: Color(0xff903749),
+              height: MediaQuery.of(context).size.width * LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES,
+              child: Row(
+                children: <Widget>[
+                  IconButton(
+                      icon: Icon(currentStop != null ? Icons.arrow_back : null, color: Colors.white,),
+                      onPressed: () async {
+                        currentStop = null;
+                        this.widget.reloadPage();
+                        if (favouritesChanged) {
+                          favouritesChanged = false;
+                          loading = true;
+                          this.widget.reloadPage();
+                          readFavourites().then((ret) async {
+                            currentFavouriteStops = await fetchFavouriteStops();
+                            loading = false;
                             this.widget.reloadPage();
-                            if (favouritesChanged) {
-                              favouritesChanged = false;
-                              loading = true;
-                              this.widget.reloadPage();
-                              readFavourites().then((ret) async {
-                                currentFavouriteStops = await fetchFavouriteStops();
-                                loading = false;
-                                this.widget.reloadPage();
-                              });
-                            }
-                          }
-                      ),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: <Widget>[
-                              Container(
-                                padding: EdgeInsets.only(left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewTitleBarTextSize / 3, right: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewTitleBarTextSize / 3),
-                                child: Text(
-                                  currentStop != null ? currentStop.commonName.length > 17 ? currentStop.commonName.replaceRange(18, currentStop.commonName.length, "...") : currentStop.commonName : "Favourites",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewTitleBarTextSize,
-                                  ),
-                                ),
-                              ),
-                              currentStop != null ? GestureDetector(
-                                  onTap: () {
-                                    if (currentFavourites.contains(currentStop.naptanId)) {
-                                      currentFavourites.removeWhere((item) => item == currentStop.naptanId);
-                                    } else {
-                                      currentFavourites.add(currentStop.naptanId);
-                                    }
-                                    writeFavourites();
-                                    favouritesChanged = true;
-                                    setState(() {});
-                                  },
-                                  child: Container(
-                                    padding: EdgeInsets.only(left: 3, right: 3, bottom: 3, top: 5),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(100),
-                                      color: Color(0xff2b2e4a),
-                                    ),
-                                    child: Icon(currentFavourites.contains(currentStop.naptanId) ? Icons.favorite : Icons.favorite_border, color: Color(0xffe84545),),
-                                  )
-                              ) : Container(),
-                            ],
-                          ),
-                          currentStop != null ? Container(
-                            padding: EdgeInsets.only(
-                                left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewTitleBarTextSize / 3,
-                                top: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewTitleBarTextSize / 4
-                            ),
+                          });
+                        }
+                      }
+                  ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: <Widget>[
+                          Container(
+                            padding: EdgeInsets.only(left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_TITLE_BAR_TEXT_SIZE / 3, right: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_TITLE_BAR_TEXT_SIZE / 3),
                             child: Text(
-                              "ID " + currentStop.naptanId + " | " + currentStop.lines.join(" • "),
+                              currentStop != null ? currentStop.commonName.length > 17 ? currentStop.commonName.replaceRange(18, currentStop.commonName.length, "...") : currentStop.commonName : "Favourites",
                               style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewTitleBarTextSize / 2,
+                                color: Colors.white,
+                                fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_TITLE_BAR_TEXT_SIZE,
                               ),
                             ),
+                          ),
+                          currentStop != null ? GestureDetector(
+                              onTap: () {
+                                if (currentFavourites.contains(currentStop.naptanId)) {
+                                  currentFavourites.removeWhere((item) => item == currentStop.naptanId);
+                                } else {
+                                  currentFavourites.add(currentStop.naptanId);
+                                }
+                                writeFavourites();
+                                favouritesChanged = true;
+                                setState(() {});
+                              },
+                              child: Container(
+                                padding: EdgeInsets.only(left: 3, right: 3, bottom: 3, top: 5),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(100),
+                                  color: Color(0xff2b2e4a),
+                                ),
+                                child: Icon(currentFavourites.contains(currentStop.naptanId) ? Icons.favorite : Icons.favorite_border, color: Color(0xffe84545),),
+                              )
                           ) : Container(),
                         ],
                       ),
-                      Expanded(
-                        flex: 1,
-                        child: Container(
-                          width: 100.0,
-                          height: 100.0,
-                        ),
-                      ),
                       currentStop != null ? Container(
-                        height: MediaQuery.of(context).size.width * (listViewTitleBarHeight) * 0.6,
-                        width: MediaQuery.of(context).size.width * (listViewTitleBarHeight) * 0.6,
-                        margin: EdgeInsets.only(right: MediaQuery.of(context).size.width * (listViewTitleBarHeight) * 0.2),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.all(Radius.circular(MediaQuery.of(context).size.width * (listViewTitleBarHeight) * 0.6)),
-                          color: Color(0xffe84545),
+                        padding: EdgeInsets.only(
+                            left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_TITLE_BAR_TEXT_SIZE / 3,
+                            top: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_TITLE_BAR_TEXT_SIZE / 4
                         ),
-                        child: Center(
-                            child: currentStop.stopLetter == null || currentStop.stopLetter.toString().contains("->") || currentStop.stopLetter == "Stop" ? Icon(Icons.train, color: Colors.white,) : Text(currentStop.stopLetter.split("Stop ")[1], style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize:  MediaQuery.of(context).size.width * (listViewTitleBarHeight) * 0.6 * 0.4,),)
+                        child: Text(
+                          "ID " + currentStop.naptanId + " | " + currentStop.lines.join(" • "),
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_TITLE_BAR_TEXT_SIZE / 2,
+                          ),
                         ),
                       ) : Container(),
                     ],
                   ),
-                ),
+                  Expanded(
+                    flex: 1,
+                    child: Container(
+                      width: 100.0,
+                      height: 100.0,
+                    ),
+                  ),
+                  currentStop != null ? Container(
+                    height: MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES) * 0.6,
+                    width: MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES) * 0.6,
+                    margin: EdgeInsets.only(right: MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES) * 0.2),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.all(Radius.circular(MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES) * 0.6)),
+                      color: Color(0xffe84545),
+                    ),
+                    child: Center(
+                        child: currentStop.stopLetter == null || currentStop.stopLetter.toString().contains("->") || currentStop.stopLetter == "Stop" ? Icon(Icons.train, color: Colors.white,) : Text(currentStop.stopLetter.split("Stop ")[1], style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize:  MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES) * 0.6 * 0.4,),)
+                    ),
+                  ) : Container(),
+                ],
+              ),
+            ),
 
-                currentStop == null ? Container(
-                  height: MediaQuery.of(context).size.height - bottomNavigationBarHeight - (MediaQuery.of(context).size.height * (listViewTitleBarHeight)),
-                  child: RefreshIndicator(
-                    onRefresh: () async {
-                      loading = true;
-                      this.widget.reloadPage();
-                      readFavourites().then((ret) async {
-                        currentFavouriteStops = await fetchFavouriteStops();
-                        loading = false;
-                        this.widget.reloadPage();
-                      });
-                    },
-                    child: SingleChildScrollView(
-                      physics: AlwaysScrollableScrollPhysics(),
-                      child: Column(
-                        children: currentFavouriteStops != null ? () {
-                          List returnNearbyStops = currentFavouriteStops.map((item) => Container(
-                            height: MediaQuery.of(context).size.width * listViewItemHeight,
-                            child: FlatButton(
-                              onPressed: () async {
-                                currentStop = item;
-                                currentArrivalTimes = await fetchArrivalTimes();
-                                currentArrivalTimes.sort((a, b) {
-                                  return a.timeToStation.compareTo(b.timeToStation);
-                                });
-                                setState(() {});
-                              },
-                              color: Color(0xffe8e8e8),
-                              child: Row(
-                                children: <Widget>[
-                                  Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        padding: EdgeInsets.only(left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize),
-                                        child: Text(
-                                          item.commonName,
-                                          style: TextStyle(
-                                            color: Color(0xff2b2e4a),
-                                            fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize,
-                                          ),
-                                        ),
+            currentStop == null ? Container(
+              height: MediaQuery.of(context).size.height - BOTTOM_NAVIGATION_BAR_HEIGHT - (MediaQuery.of(context).size.height * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES)),
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  loading = true;
+                  this.widget.reloadPage();
+                  readFavourites().then((ret) async {
+                    currentFavouriteStops = await fetchFavouriteStops();
+                    loading = false;
+                    this.widget.reloadPage();
+                  });
+                },
+                child: SingleChildScrollView(
+                  physics: AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    children: currentFavouriteStops != null ? () {
+                      List returnNearbyStops = currentFavouriteStops.map((item) => Container(
+                        height: MediaQuery.of(context).size.width * LIST_VIEW_ITEM_HEIGHT,
+                        child: FlatButton(
+                          onPressed: () async {
+                            currentStop = item;
+                            currentArrivalTimes = await fetchArrivalTimes();
+                            currentArrivalTimes.sort((a, b) {
+                              return a.timeToStation.compareTo(b.timeToStation);
+                            });
+                            setState(() {});
+                          },
+                          color: Color(0xffe8e8e8),
+                          child: Row(
+                            children: <Widget>[
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.only(left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE),
+                                    child: Text(
+                                      item.commonName,
+                                      style: TextStyle(
+                                        color: Color(0xff2b2e4a),
+                                        fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE,
                                       ),
-                                      item != null ? Container(
-                                        padding: EdgeInsets.only(
-                                            left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize,
-                                            top: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize / 4
-                                        ),
-                                        child: Text(
-                                          "ID " + item.naptanId + " | " + item.lines.join(" • "),
-                                          style: TextStyle(
-                                            color: Color(0xff53354a),
-                                            fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize / 2,
-                                          ),
-                                        ),
-                                      ) : Container(),
-                                    ],
-                                  ),
-                                  Expanded(
-                                    flex: 1,
-                                    child: Container(
-                                      width: 100.0,
-                                      height: 100.0,
                                     ),
                                   ),
                                   item != null ? Container(
-                                    height: MediaQuery.of(context).size.width * (listViewItemHeight) * 0.6,
-                                    width: MediaQuery.of(context).size.width * (listViewItemHeight) * 0.6,
-                                    margin: EdgeInsets.only(right: MediaQuery.of(context).size.width * (listViewItemHeight) * 0.2),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.all(Radius.circular(MediaQuery.of(context).size.width * (listViewItemHeight) * 0.6)),
-                                      color: Color(0xffe84545),
+                                    padding: EdgeInsets.only(
+                                        left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE,
+                                        top: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE / 4
                                     ),
-                                    child: Center(
-                                      child: item.stopLetter == null || item.stopLetter.toString().contains("->") || item.stopLetter == "Stop" ? Icon(Icons.train, color: Colors.white,) : Text(item.stopLetter.split("Stop ")[1], style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),),
+                                    child: Text(
+                                      "ID " + item.naptanId + " | " + item.lines.join(" • "),
+                                      style: TextStyle(
+                                        color: Color(0xff53354a),
+                                        fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE / 2,
+                                      ),
                                     ),
                                   ) : Container(),
                                 ],
                               ),
-                            ),
-                          )).toList();
-                          returnNearbyStops.add(Container(
-                            height: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) - ((MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * (listViewTitleBarHeight) + 15),
-                          ));
-                          return returnNearbyStops;
-                        }() : [Container()],
-                      ),
+                              Expanded(
+                                flex: 1,
+                                child: Container(
+                                  width: 100.0,
+                                  height: 100.0,
+                                ),
+                              ),
+                              item != null ? Container(
+                                height: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT) * 0.6,
+                                width: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT) * 0.6,
+                                margin: EdgeInsets.only(right: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT) * 0.2),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.all(Radius.circular(MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT) * 0.6)),
+                                  color: Color(0xffe84545),
+                                ),
+                                child: Center(
+                                  child: item.stopLetter == null || item.stopLetter.toString().contains("->") || item.stopLetter == "Stop" ? Icon(Icons.train, color: Colors.white,) : Text(item.stopLetter.split("Stop ")[1], style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),),
+                                ),
+                              ) : Container(),
+                            ],
+                          ),
+                        ),
+                      )).toList();
+                      returnNearbyStops.add(Container(
+                        height: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) - ((MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES) + 15),
+                      ));
+                      return returnNearbyStops;
+                    }() : [Container()],
+                  ),
+                ),
+              ),
+            ) : Container(
+                height: MediaQuery.of(context).size.height - BOTTOM_NAVIGATION_BAR_HEIGHT - (MediaQuery.of(context).size.height * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES)),
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    currentArrivalTimes = await fetchArrivalTimes();
+                    currentArrivalTimes.sort((a, b) {
+                      return a.timeToStation.compareTo(b.timeToStation);
+                    });
+                    setState(() {});
+                  },
+                  child: SingleChildScrollView(
+                    physics: AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      children: currentArrivalTimes != null ? () {
+                        List returnArrivalTimes = currentArrivalTimes.map((item) => AnimatedContainer(
+                          duration: Duration(milliseconds: ANIMATION_DURATION),
+                          curve: Curves.easeOut,
+                          color: Color(0xffe8e8e8),
+                          height: MediaQuery.of(context).size.width * LIST_VIEW_ITEM_HEIGHT,
+                          child: Row(
+                            children: <Widget>[
+                              item.lineName != null ? Container(
+                                height: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT) * 0.6,
+                                width: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT) * 0.6 * 2,
+                                margin: EdgeInsets.only(left: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT) * 0.2),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.all(Radius.circular(MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT) * 0.6)),
+                                  color: Color(0xffe84545),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                      item.lineName,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      )
+                                  ),
+                                ),
+                              ) : Container(),
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.only(left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE),
+                                    child: Text(
+                                      item.destinationName != null ? item.destinationName.length > 20 ? item.destinationName.replaceRange(21, item.destinationName.length, "...") : item.destinationName : "",
+                                      style: TextStyle(
+                                        color: Color(0xff2b2e4a),
+                                        fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE,
+                                      ),
+                                    ),
+                                  ),
+                                  item.vehicleId != null ? Container(
+                                    padding: EdgeInsets.only(
+                                        left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE,
+                                        top: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE / 4
+                                    ),
+                                    child: Text(
+                                      item.vehicleId,
+                                      style: TextStyle(
+                                        color: Color(0xff53354a),
+                                        fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE / 2,
+                                      ),
+                                    ),
+                                  ) : Container(),
+                                ],
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: Container(
+                                  width: 100.0,
+                                  height: 100.0,
+                                ),
+                              ),
+                              item.timeToStation != null ? Container(
+                                height: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT),
+                                margin: EdgeInsets.only(right: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT) * 0.2),
+                                child: Center(
+                                  child: Text(
+                                      (item.timeToStation / 60).ceil().toString() + ((item.timeToStation / 60).ceil() > 0 ? " mins" : "min"),
+                                      style: TextStyle(
+                                        color: Colors.red,
+                                        fontSize: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT) * 0.5,
+                                        fontWeight: FontWeight.bold,
+                                      )
+                                  ),
+                                ),
+                              ) : Container(),
+                            ],
+                          ),
+                        )).toList();
+                        returnArrivalTimes.add(AnimatedContainer(
+                          duration: Duration(milliseconds: ANIMATION_DURATION),
+                          curve: Curves.easeOut,
+                          height: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) - ((MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES) + 15),
+                        ));
+                        return returnArrivalTimes;
+                      }() : [Container()],
                     ),
                   ),
-                ) : Container(
-                    height: MediaQuery.of(context).size.height - bottomNavigationBarHeight - (MediaQuery.of(context).size.height * (listViewTitleBarHeight)),
-                    child: RefreshIndicator(
-                      onRefresh: () async {
-                        currentArrivalTimes = await fetchArrivalTimes();
-                        currentArrivalTimes.sort((a, b) {
-                          return a.timeToStation.compareTo(b.timeToStation);
-                        });
-                        setState(() {});
-                      },
-                      child: SingleChildScrollView(
-                        physics: AlwaysScrollableScrollPhysics(),
-                        child: Column(
-                          children: currentArrivalTimes != null ? () {
-                            List returnArrivalTimes = currentArrivalTimes.map((item) => AnimatedContainer(
-                              duration: Duration(milliseconds: animationDuration),
-                              curve: Curves.easeOut,
-                              color: Color(0xffe8e8e8),
-                              height: MediaQuery.of(context).size.width * listViewItemHeight,
-                              child: Row(
-                                children: <Widget>[
-                                  item.lineName != null ? Container(
-                                    height: MediaQuery.of(context).size.width * (listViewItemHeight) * 0.6,
-                                    width: MediaQuery.of(context).size.width * (listViewItemHeight) * 0.6 * 2,
-                                    margin: EdgeInsets.only(left: MediaQuery.of(context).size.width * (listViewItemHeight) * 0.2),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.all(Radius.circular(MediaQuery.of(context).size.width * (listViewItemHeight) * 0.6)),
-                                      color: Color(0xffe84545),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                          item.lineName,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                          )
-                                      ),
-                                    ),
-                                  ) : Container(),
-                                  Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        padding: EdgeInsets.only(left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize),
-                                        child: Text(
-                                          item.destinationName != null ? item.destinationName.length > 20 ? item.destinationName.replaceRange(21, item.destinationName.length, "...") : item.destinationName : "",
-                                          style: TextStyle(
-                                            color: Color(0xff2b2e4a),
-                                            fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize,
-                                          ),
-                                        ),
-                                      ),
-                                      item.vehicleId != null ? Container(
-                                        padding: EdgeInsets.only(
-                                            left: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize,
-                                            top: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize / 4
-                                        ),
-                                        child: Text(
-                                          item.vehicleId,
-                                          style: TextStyle(
-                                            color: Color(0xff53354a),
-                                            fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * listViewItemTextSize / 2,
-                                          ),
-                                        ),
-                                      ) : Container(),
-                                    ],
-                                  ),
-                                  Expanded(
-                                    flex: 1,
-                                    child: Container(
-                                      width: 100.0,
-                                      height: 100.0,
-                                    ),
-                                  ),
-                                  item.timeToStation != null ? Container(
-                                    height: MediaQuery.of(context).size.width * (listViewItemHeight),
-                                    margin: EdgeInsets.only(right: MediaQuery.of(context).size.width * (listViewItemHeight) * 0.2),
-                                    child: Center(
-                                      child: Text(
-                                          (item.timeToStation / 60).ceil().toString() + ((item.timeToStation / 60).ceil() > 0 ? " mins" : "min"),
-                                          style: TextStyle(
-                                            color: Colors.red,
-                                            fontSize: MediaQuery.of(context).size.width * (listViewItemHeight) * 0.5,
-                                            fontWeight: FontWeight.bold,
-                                          )
-                                      ),
-                                    ),
-                                  ) : Container(),
-                                ],
-                              ),
-                            )).toList();
-                            returnArrivalTimes.add(AnimatedContainer(
-                              duration: Duration(milliseconds: animationDuration),
-                              curve: Curves.easeOut,
-                              height: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) - ((MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * (listViewTitleBarHeight) + 15),
-                            ));
-                            return returnArrivalTimes;
-                          }() : [Container()],
-                        ),
-                      ),
-                    )
-                ),
-              ],
-            )
-        ),
-      ],
+                )
+            ),
+          ],
+        )
     );
   }
 }

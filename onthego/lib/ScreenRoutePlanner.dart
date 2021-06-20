@@ -115,7 +115,7 @@ Future<List> fetchFavouriteStops() async {
 Future<Stop> fetchFavouriteStop(String naptanId) async {
   String url = 'https://api.tfl.gov.uk/Stoppoint/' + naptanId;
   print("///" + url);
-  final response = await http.get(url);
+  final response = await http.get(Uri.parse(url));
 
   if (response.statusCode == 200){
     if (jsonDecode(response.body)["naptanId"] == naptanId) {
@@ -152,7 +152,7 @@ Future<List> fetchArrivalTimes() async {
   url += currentStop.naptanId;
   url += "/arrivals";
   print(url);
-  final response = await http.get(url);
+  final response = await http.get(Uri.parse(url));
 
   if (response.statusCode == 200) {
     return jsonDecode(response.body).map((arrivalTime) => ArrivalTime.fromJson(arrivalTime)).toList();
