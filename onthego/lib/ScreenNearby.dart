@@ -652,8 +652,7 @@ class _MapViewState extends State<MapView> {
                         },
                       ),
                     ),
-                  )
-                      .toList();
+                  ).toList();
                   if (currentLocation != null) {
                     returnList.add(Marker(
                       width: 80.0,
@@ -676,10 +675,45 @@ class _MapViewState extends State<MapView> {
         ),
         GestureDetector(
           onVerticalDragStart: (details) {
+            lastPosition = details.globalPosition.dy;
           },
           onVerticalDragUpdate: (details) {
+            double change = details.globalPosition.dy - lastPosition;
+            mapHeight += change;
+            lastPosition = details.globalPosition.dy;
+            if (mapHeight < INITIAL_MAP_HEIGHT) {
+              mapHeight = INITIAL_MAP_HEIGHT;
+            }
+            if (mapHeight > MAX_MAP_HEIGHT) {
+              mapHeight = MAX_MAP_HEIGHT;
+            }
+            if ((mapHeight - INITIAL_MAP_HEIGHT) / (MAX_MAP_HEIGHT - INITIAL_MAP_HEIGHT) > 0.5){
+              pullTabIcon = false;
+            } else {
+              pullTabIcon = true;
+            }
+            currentBlurValue = 2 *
+                ((mapHeight - INITIAL_MAP_HEIGHT) /
+                    (MAX_MAP_HEIGHT - INITIAL_MAP_HEIGHT));
+            setState(() {});
           },
           onVerticalDragEnd: (details) {
+            if (MAX_MAP_HEIGHT - mapHeight < 10) {
+              mapHeight = MAX_MAP_HEIGHT;
+              pullTabIcon = false;
+              currentBlurValue = 2;
+            } else {
+              if (details.primaryVelocity > 0) {
+                mapHeight = MAX_MAP_HEIGHT;
+                pullTabIcon = false;
+                currentBlurValue = 2;
+              } else {
+                mapHeight = INITIAL_MAP_HEIGHT;
+                pullTabIcon = true;
+                currentBlurValue = 0;
+              }
+            }
+            setState(() {});
           },
           child: Container(
             width: MediaQuery.of(context).size.width,
