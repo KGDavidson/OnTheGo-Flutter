@@ -390,9 +390,10 @@ class _TopBarState extends State<TopBar> {
               setState(() {});
             },
             child: Container(
+              padding: EdgeInsets.all(5),
               child: Icon(
-                showSearchInput ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                color: Colors.white,
+                Icons.manage_search,
+                color: showSearchInput ? Colors.white : Colors.white70,
               ),
             ),
           )
@@ -502,6 +503,16 @@ class _MapViewState extends State<MapView> {
           ),
         ),
         GestureDetector(
+          onTap: () {
+            if (mapHeight == INITIAL_MAP_HEIGHT) {
+              mapHeight = MAX_MAP_HEIGHT;
+              pullTabIcon = false;
+            } else {
+              mapHeight = INITIAL_MAP_HEIGHT;
+              pullTabIcon = true;
+            }
+            setState(() {});
+          },
           onVerticalDragStart: (details) {
             lastPosition = details.globalPosition.dy;
           },
