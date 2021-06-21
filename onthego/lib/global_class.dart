@@ -16,5 +16,5 @@ class ArrivalTime {
   final String destinationName;
   final int timeToStation;
 
-  ArrivalTime(this.vehicleId, this.lineName, this.timeToStation, this.destinationName);
+  ArrivalTime(this.vehicleId, this.lineName, this.destinationName, this.timeToStation);
 }

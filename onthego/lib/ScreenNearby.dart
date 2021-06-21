@@ -351,84 +351,90 @@ class _MapViewState extends State<MapView> {
           duration: Duration(milliseconds: ANIMATION_DURATION),
           curve: Curves.easeOut,
           height: mapHeight,
-          child: FlutterMap(
-            mapController: mapController,
-            options: new MapOptions(
-              center: currentLocation == null ? LatLng(51.507351, -0.127758) : LatLng(currentLocation.latitude, currentLocation.longitude),
-              zoom: 15.0,
-              maxZoom: 17.5,
-              minZoom: 14.0,
-            ),
-            layers: [
-              new TileLayerOptions(
-                //https://stamen-tiles-{s}.a.ssl.fastly.net/toner/{z}/{x}/{y}.png
-                //https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png
-                urlTemplate: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-                subdomains: ['a', 'b', 'c', 'd'],
+          child: GestureDetector(
+            onHorizontalDragUpdate: (details) {
+              print(details.delta.dx);
+            },
+            child: FlutterMap(
+              mapController: mapController,
+              options: new MapOptions(
+                interactiveFlags: InteractiveFlag.pinchZoom,
+                center: currentLocation == null ? LatLng(51.507351, -0.127758) : LatLng(currentLocation.latitude, currentLocation.longitude),
+                zoom: 15.0,
+                maxZoom: 17.5,
+                minZoom: 14.0,
               ),
-              new MarkerLayerOptions(
-                markers: currentNearbyStops != null
-                    ? () {
-                        List<Marker> returnList = currentNearbyStops
-                            .map(
-                              (item) => Marker(
-                                width: 20.0,
-                                height: 20.0,
-                                point: LatLng(item.lat, item.lon),
-                                builder: (ctx) => GestureDetector(
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.all(Radius.circular(5)),
-                                      color: currentStopNearby == item ? Color(0xffe84545) : Colors.blueGrey.withAlpha(150),
-                                    ),
-                                    child: Center(
-                                      child: item.stopLetter == null || item.stopLetter.toString().contains("->") || item.stopLetter == "Stop"
-                                          ? selectedToggle == 0
-                                              ? Icon(
-                                                  Icons.directions_bus,
+              layers: [
+                new TileLayerOptions(
+                  //https://stamen-tiles-{s}.a.ssl.fastly.net/toner/{z}/{x}/{y}.png
+                  //https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png
+                  urlTemplate: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+                  subdomains: ['a', 'b', 'c', 'd'],
+                ),
+                new MarkerLayerOptions(
+                  markers: currentNearbyStops != null
+                      ? () {
+                          List<Marker> returnList = currentNearbyStops
+                              .map(
+                                (item) => Marker(
+                                  width: 20.0,
+                                  height: 20.0,
+                                  point: LatLng(item.lat, item.lon),
+                                  builder: (ctx) => GestureDetector(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.all(Radius.circular(5)),
+                                        color: currentStopNearby == item ? Color(0xffe84545) : Colors.blueGrey.withAlpha(150),
+                                      ),
+                                      child: Center(
+                                        child: item.stopLetter == null || item.stopLetter.toString().contains("->") || item.stopLetter == "Stop"
+                                            ? selectedToggle == 0
+                                                ? Icon(
+                                                    Icons.directions_bus,
+                                                    color: Colors.white,
+                                                    size: 16,
+                                                  )
+                                                : Icon(
+                                                    Icons.directions_train,
+                                                    color: Colors.white,
+                                                    size: 16,
+                                                  )
+                                            : Text(
+                                                item.stopLetter.split("Stop ")[1],
+                                                style: TextStyle(
                                                   color: Colors.white,
-                                                  size: 16,
-                                                )
-                                              : Icon(
-                                                  Icons.directions_train,
-                                                  color: Colors.white,
-                                                  size: 16,
-                                                )
-                                          : Text(
-                                              item.stopLetter.split("Stop ")[1],
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT - PULL_TAB_HEIGHT) * 0.6 * 0.25,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT - PULL_TAB_HEIGHT) * 0.6 * 0.25,
+                                                ),
                                               ),
-                                            ),
+                                      ),
                                     ),
+                                    onTap: () async {
+                                      currentStopNearby = item;
+                                      loadArrivalTimesNearby(this.widget.setStateParent);
+                                    },
                                   ),
-                                  onTap: () async {
-                                    currentStopNearby = item;
-                                    loadArrivalTimesNearby(this.widget.setStateParent);
-                                  },
                                 ),
+                              )
+                              .toList();
+                          if (currentLocation != null) {
+                            returnList.add(Marker(
+                              width: 80.0,
+                              height: 80.0,
+                              point: LatLng(currentLocation.latitude, currentLocation.longitude),
+                              builder: (ctx) => Icon(
+                                Icons.my_location,
+                                color: Colors.blueGrey,
+                                size: 25,
                               ),
-                            )
-                            .toList();
-                        if (currentLocation != null) {
-                          returnList.add(Marker(
-                            width: 80.0,
-                            height: 80.0,
-                            point: LatLng(currentLocation.latitude, currentLocation.longitude),
-                            builder: (ctx) => Icon(
-                              Icons.my_location,
-                              color: Colors.blueGrey,
-                              size: 25,
-                            ),
-                          ));
-                        }
-                        return returnList;
-                      }()
-                    : [],
-              ),
-            ],
+                            ));
+                          }
+                          return returnList;
+                        }()
+                      : [],
+                ),
+              ],
+            ),
           ),
         ),
         GestureDetector(
