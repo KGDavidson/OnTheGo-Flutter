@@ -22,96 +22,6 @@ bool back(setState) {
   return false;
 }
 
-List<Widget> buildArrivalTimes(context) {
-  if (currentArrivalTimesNearby == null) {
-    return [Container()];
-  }
-  List<Widget> arrivalTimes = currentArrivalTimesNearby
-      .map((item) => AnimatedContainer(
-            duration: Duration(milliseconds: ANIMATION_DURATION),
-            curve: Curves.easeOut,
-            color: Color(0xffe8e8e8),
-            height: MediaQuery.of(context).size.width * LIST_VIEW_ITEM_HEIGHT,
-            child: Row(
-              children: <Widget>[
-                item.lineName != null
-                    ? Container(
-                        height: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT - PULL_TAB_HEIGHT) * 0.6,
-                        padding: EdgeInsets.fromLTRB(4, 2, 5, 4),
-                        margin: EdgeInsets.only(left: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT - PULL_TAB_HEIGHT) * 0.2),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.all(Radius.circular(MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT - PULL_TAB_HEIGHT) * 0.6)),
-                          color: Color(0xffe84545),
-                        ),
-                        child: Center(
-                          child: Text(item.lineName,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              )),
-                        ),
-                      )
-                    : Container(),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.only(left: MediaQuery.of(context).size.height * LIST_VIEW_ITEM_TEXT_SIZE),
-                      child: Text(
-                        item.destinationName != null
-                            ? item.destinationName.length > 20
-                                ? item.destinationName.replaceRange(21, item.destinationName.length, "...")
-                                : item.destinationName
-                            : "",
-                        style: TextStyle(
-                          color: Color(0xff2b2e4a),
-                          fontSize: MediaQuery.of(context).size.height * LIST_VIEW_ITEM_TEXT_SIZE,
-                        ),
-                      ),
-                    ),
-                    item.vehicleId != null
-                        ? Container(
-                            padding: EdgeInsets.only(left: MediaQuery.of(context).size.height * LIST_VIEW_ITEM_TEXT_SIZE, top: MediaQuery.of(context).size.height * LIST_VIEW_ITEM_TEXT_SIZE / 4),
-                            child: Text(
-                              item.vehicleId,
-                              style: TextStyle(
-                                color: Color(0xff53354a),
-                                fontSize: MediaQuery.of(context).size.height * LIST_VIEW_ITEM_TEXT_SIZE / 2,
-                              ),
-                            ),
-                          )
-                        : Container(),
-                  ],
-                ),
-                Expanded(
-                  flex: 1,
-                  child: Container(
-                    width: 100.0,
-                    height: 100.0,
-                  ),
-                ),
-                item.timeToStation != null
-                    ? Container(
-                        height: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT - PULL_TAB_HEIGHT),
-                        margin: EdgeInsets.only(right: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT - PULL_TAB_HEIGHT) * 0.2),
-                        child: Center(
-                          child: Text((item.timeToStation / 60).ceil().toString() + ((item.timeToStation / 60).ceil() > 0 ? " mins" : "min"),
-                              style: TextStyle(
-                                color: Colors.red,
-                                fontSize: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT - PULL_TAB_HEIGHT) * 0.5,
-                                fontWeight: FontWeight.bold,
-                              )),
-                        ),
-                      )
-                    : Container(),
-              ],
-            ),
-          ))
-      .toList();
-  return arrivalTimes;
-}
-
 List<Widget> buildNearbyStops(context, setState, setStateParent) {
   if (currentNearbyStops == null) {
     return [Container()];
@@ -215,9 +125,15 @@ class _ScreenNearby extends State<ScreenNearby> {
   void initState() {
     super.initState();
     readFavourites();
-    if (currentLocation != null) {
-      mapController = MapController();
-    }
+    mapController = MapController();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    FocusScope.of(context).unfocus();
+    mapController = MapController();
   }
 
   @override
@@ -772,10 +688,10 @@ class _ListViewPageState extends State<ListViewPage> {
                   ],
                 ),
               ),
-              loadingNearby
-                  ? Expanded(child: Center(child: CircularProgressIndicator()))
-                  : Expanded(
-                      child: RefreshIndicator(
+              Expanded(
+                child: loadingNearby
+                    ? Center(child: CircularProgressIndicator())
+                    : RefreshIndicator(
                         onRefresh: () async {
                           mapHeight = INITIAL_MAP_HEIGHT;
                           pullTabIcon = true;
@@ -786,12 +702,9 @@ class _ListViewPageState extends State<ListViewPage> {
                             loadArrivalTimesNearby(setState);
                           }
                         },
-                        child: SingleChildScrollView(
-                          physics: AlwaysScrollableScrollPhysics(),
-                          child: Column(children: currentStopNearby == null ? buildNearbyStops(context, setState, this.widget.setStateParent) : buildArrivalTimes(context)),
-                        ),
+                        child: ListView(children: currentStopNearby == null ? buildNearbyStops(context, setState, this.widget.setStateParent) : buildArrivalTimes(context, 0)),
                       ),
-                    )
+              )
             ],
           )),
     );

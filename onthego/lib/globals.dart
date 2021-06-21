@@ -11,8 +11,8 @@ String currentSearchString = "";
 
 bool firstOpen = true;
 bool favouritesChanged = false;
-bool loadingNearby = false;
-bool loadingFavourites = false;
+bool loadingNearby = true;
+bool loadingFavourites = true;
 bool showSearchInput = false;
 
 int selectedToggle = 0;
