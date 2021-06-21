@@ -17,15 +17,10 @@ bool loading = false;
 bool back(setState) {
   if (currentStopFavourites != null) {
     currentStopFavourites = null;
-    setState(() {});
     if (favouritesChanged) {
       favouritesChanged = false;
-      loading = true;
-      setState(() {});
       readFavourites().then((ret) async {
-        currentFavouriteStops = await fetchFavouriteStops();
-        loading = false;
-        setState(() {});
+        fetchFavouriteStops(setState);
       });
     }
     setState(() {});
@@ -136,59 +131,52 @@ Future<void> loadArrivalTimes(setState) async {
 }
 
 double calculateDistance(lat1, lon1, lat2, lon2){
+  print(lat1);
+  print(lon1);
+  print(lat2);
+  print(lon2);
   var p = 0.017453292519943295;
   var c = cos;
-  var a = 0.5 - c((lat2 - lat1) * p)/2 +
-      c(lat1 * p) * c(lat2 * p) *
-          (1 - c((lon2 - lon1) * p))/2;
+  var a = 0.5 - c((lat2 - lat1) * p)/2 + c(lat1 * p) * c(lat2 * p) * (1 - c((lon2 - lon1) * p))/2;
   return 12742 * asin(sqrt(a));
 }
 
-Future<List> fetchFavouriteStops() async {
+Future<List> fetchFavouriteStops(setState) async {
+  setState(() {
+    loading = true;
+  });
   List favouriteStops = [];
-  for (String item in currentFavourites) {
+  for (MapEntry<String, dynamic> item in currentFavourites.entries) {
     Stop favouriteStop = await fetchFavouriteStop(item);
     favouriteStops.add(favouriteStop);
   }
-  await getCurrentLocation();
-  favouriteStops.sort((a, b) {
-    return calculateDistance(currentLocation.latitude, currentLocation.longitude, a.lat, a.lon).compareTo(calculateDistance(currentLocation.latitude, currentLocation.longitude, b.lat, b.lon));
+  print(favouriteStops.length);
+  //await getCurrentLocation();
+  if (favouriteStops.length > 0) {
+    favouriteStops.sort((a, b) {
+      return calculateDistance(
+          currentLocation.latitude, currentLocation.longitude, a.lat, a.lon)
+          .compareTo(calculateDistance(
+          currentLocation.latitude, currentLocation.longitude, b.lat, b.lon));
+    });
+  }
+  currentFavouriteStops = favouriteStops;
+  setState(() {
+    loading = false;
   });
-  return (favouriteStops);
 }
 
-Future<Stop> fetchFavouriteStop(String naptanId) async {
-  String url = 'https://api.tfl.gov.uk/Stoppoint/$naptanId';
-  final response = await http.get(Uri.parse(url));
+Future<Stop> fetchFavouriteStop(MapEntry<String, dynamic> stop) async {
+  String naptanId = stop.key;
+  Map<String, dynamic> values = stop.value;
+  String stopLetter = values["stopLetter"];
+  String commonName = values["commonName"];
+  double distance = values["distance"];
+  double lat = values["lat"];
+  double lon = values["lon"];
+  List<dynamic> lines = values["lines"];
 
-  if (response.statusCode == 200){
-    if (jsonDecode(response.body)["naptanId"] == naptanId) {
-      return (Stop.fromJson(jsonDecode(response.body)));
-    }
-    List children = jsonDecode(response.body)["children"].toList();
-    if (children[0]["children"].toList() != null) {
-      List firstCheck = children.where((item) => item["naptanId"] == naptanId)
-          .toList().map((item) => Stop.fromJson(item))
-          .toList();
-      if (firstCheck.isNotEmpty) {
-        return firstCheck[0];
-      } else {
-        return children.map((item) =>
-            item["children"].toList().where((item) => item["naptanId"] ==
-                naptanId).toList()
-                .map((item) => Stop.fromJson(item))
-                .toList()).toList().where((item) =>
-        item.length > 0).toList()[0][0];
-      }
-    } else {
-      return children.where((item) => item["naptanId"] == naptanId)
-          .toList()
-          .map((item) => Stop.fromJson(item))
-          .toList()[0];
-    }
-  } else {
-    throw Exception('Failed to load');
-  }
+  return new Stop.fromPrefs(naptanId, stopLetter, commonName, distance, lat, lon, lines);
 }
 
 class ScreenFavourites extends StatefulWidget {
@@ -202,13 +190,10 @@ class _ScreenFavourites extends State<ScreenFavourites>{
   @override
   void initState() {
     super.initState();
-    setState(() {});
+    print("test");
     if (favouritesChanged) {
-      loading = true;
       readFavourites().then((ret) async {
-        currentFavouriteStops = await fetchFavouriteStops();
-        loading = false;
-        setState(() {});
+        fetchFavouriteStops(setState);
       });
     }
   }
@@ -270,13 +255,20 @@ class _ListViewPageState extends State<ListViewPage> {
                           ),
                           currentStopFavourites != null ? GestureDetector(
                               onTap: () {
-                                if (currentFavourites.contains(currentStopFavourites.naptanId)) {
-                                  currentFavourites.removeWhere((item) => item == currentStopFavourites.naptanId);
+                                if (currentFavourites.containsKey(currentStopFavourites.naptanId)) {
+                                  currentFavourites.removeWhere((key, value) => key == currentStopFavourites.naptanId);
                                 } else {
-                                  currentFavourites.add(currentStopFavourites.naptanId);
+                                  currentFavourites[currentStopFavourites.naptanId] = {
+                                    "stopLetter": currentStopFavourites.stopLetter,
+                                    "distance": currentStopFavourites.distance,
+                                    "lat": currentStopFavourites.lat,
+                                    "lon:": currentStopFavourites.lon,
+                                    "lines": currentStopFavourites.lines,
+                                  };
                                 }
                                 writeFavourites();
                                 favouritesChanged = true;
+                                back(setState);
                                 setState(() {});
                               },
                               child: Container(
@@ -285,7 +277,7 @@ class _ListViewPageState extends State<ListViewPage> {
                                   borderRadius: BorderRadius.circular(100),
                                   color: Color(0xff2b2e4a),
                                 ),
-                                child: Icon(currentFavourites.contains(currentStopFavourites.naptanId) ? Icons.favorite : Icons.favorite_border, color: Color(0xffe84545),),
+                                child: Icon(currentFavourites.containsKey(currentStopFavourites.naptanId) ? Icons.favorite : Icons.favorite_border, color: Color(0xffe84545),),
                               )
                           ) : Container(),
                         ],
@@ -336,12 +328,9 @@ class _ListViewPageState extends State<ListViewPage> {
               height: MediaQuery.of(context).size.height - BOTTOM_NAVIGATION_BAR_HEIGHT - (MediaQuery.of(context).size.height * (LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES)),
               child: RefreshIndicator(
                 onRefresh: () async {
-                  loading = true;
                   this.widget.reloadPage();
                   readFavourites().then((ret) async {
-                    currentFavouriteStops = await fetchFavouriteStops();
-                    loading = false;
-                    this.widget.reloadPage();
+                    fetchFavouriteStops(setState);
                   });
                 },
                 child: SingleChildScrollView(

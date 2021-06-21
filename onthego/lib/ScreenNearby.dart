@@ -322,7 +322,9 @@ Future<void> loadNearbyStops(setState) async {
   String stopTypes = busTrain[selectedToggle];
   String latitude = currentLocation.latitude.toString();
   String longitude = currentLocation.longitude.toString();
-  mapController.move(LatLng(currentLocation.latitude, currentLocation.longitude), mapController.zoom);
+  mapController.onReady.then((value) {
+    mapController.move(LatLng(currentLocation.latitude, currentLocation.longitude), mapController.zoom);
+  });
   String urlString = "https://api.tfl.gov.uk/StopPoint?stoptypes=$stopTypes&radius=1000&lat=$latitude&lon=$longitude";
 
   var uri = Uri.parse(urlString);
@@ -342,7 +344,9 @@ Future<void> loadArrivalTimes(setState) async {
   setState(() {
     loading = true;
   });
-  mapController.move(LatLng(currentStopNearby.lat, currentStopNearby.lon), mapController.zoom);
+  mapController.onReady.then((value) {
+    mapController.move(LatLng(currentStopNearby.lat, currentStopNearby.lon), mapController.zoom);
+  });
   String id = currentStopNearby.naptanId;
   String urlString = "https://api.tfl.gov.uk/StopPoint/$id/Arrivals";
 
@@ -381,6 +385,7 @@ class _ScreenNearby extends State<ScreenNearby>{
   @override
   void initState() {
     super.initState();
+    readFavourites();
     if (firstOpen) {
       firstOpen = false;
       loadClosestStopArrivalTimes(setState);
@@ -407,7 +412,7 @@ class _ScreenNearby extends State<ScreenNearby>{
       },
       child: Stack(
         children: <Widget>[
-          ListViewPage(),
+          ListViewPage(setState),
           MapView(setState),
           TopToggleBar(setState),
         ],
@@ -567,7 +572,7 @@ class _MapViewState extends State<MapView> {
             mapController: mapController,
             options: new MapOptions(
               center: currentLocation == null ? LatLng(51.507351, -0.127758) : LatLng(currentLocation.latitude, currentLocation.longitude),
-              zoom: 13.0,
+              zoom: 15.0,
               maxZoom: 17.5,
             ),
             layers: [
@@ -691,6 +696,10 @@ class _MapViewState extends State<MapView> {
 }
 
 class ListViewPage extends StatefulWidget {
+  Function setStateParent;
+
+  ListViewPage(this.setStateParent);
+
   @override
   _ListViewPageState createState() => _ListViewPageState();
 }
@@ -699,234 +708,244 @@ class _ListViewPageState extends State<ListViewPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-        margin: EdgeInsets.only(
-          top: (MediaQuery.of(context).size.height * (TOGGLE_BAR_HEIGHT)) + INITIAL_MAP_HEIGHT,
-        ),
-        color: Color(0xffe8e8e8),
-        child: Column(
-          children: <Widget>[
-            AnimatedContainer(
-              duration: Duration(milliseconds: ANIMATION_DURATION),
-              curve: Curves.easeOut,
-              padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).size.height *
-                      (PULL_TAB_HEIGHT)),
-              color: Color(0xff903749),
-              height: MediaQuery.of(context).size.width *
-                  LIST_VIEW_TITLE_BAR_HEIGHT,
-              child: Row(
-                children: <Widget>[
-                  IconButton(
-                      icon: Icon(
-                        currentStopNearby != null ? Icons.arrow_back : null,
-                        color: Colors.white,
-                      ),
-                      onPressed: () {
-                        back(setState);
-                      }),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: <Widget>[
-                          Container(
-                            padding: EdgeInsets.only(
-                                left: MediaQuery.of(context).size.height *
-                                    LIST_VIEW_TITLE_BAR_TEXT_SIZE /
-                                    3,
-                                right:
-                                MediaQuery.of(context).size.height *
-                                    LIST_VIEW_TITLE_BAR_TEXT_SIZE /
-                                    3),
-                            child: loading ? Text(
-                              "Nearby Stops",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize:
-                                MediaQuery.of(context).size.height *
-                                    LIST_VIEW_TITLE_BAR_TEXT_SIZE,
+    return GestureDetector(
+      onTap: () {
+        mapHeight = INITIAL_MAP_HEIGHT;
+        this.widget.setStateParent(() {});
+      },
+      child: Container(
+          margin: EdgeInsets.only(
+            top: (MediaQuery.of(context).size.height * (TOGGLE_BAR_HEIGHT)) + INITIAL_MAP_HEIGHT,
+          ),
+          color: Color(0xffe8e8e8),
+          child: Column(
+            children: <Widget>[
+              AnimatedContainer(
+                duration: Duration(milliseconds: ANIMATION_DURATION),
+                curve: Curves.easeOut,
+                padding: EdgeInsets.only(
+                    top: MediaQuery.of(context).size.height *
+                        (PULL_TAB_HEIGHT)),
+                color: Color(0xff903749),
+                height: MediaQuery.of(context).size.width *
+                    LIST_VIEW_TITLE_BAR_HEIGHT,
+                child: Row(
+                  children: <Widget>[
+                    IconButton(
+                        icon: Icon(
+                          currentStopNearby != null ? Icons.arrow_back : null,
+                          color: Colors.white,
+                        ),
+                        onPressed: () {
+                          mapHeight = INITIAL_MAP_HEIGHT;
+                          this.widget.setStateParent(() {});
+                          back(setState);
+                        }),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: <Widget>[
+                            Container(
+                              padding: EdgeInsets.only(
+                                  left: MediaQuery.of(context).size.height *
+                                      LIST_VIEW_TITLE_BAR_TEXT_SIZE /
+                                      3,
+                                  right:
+                                  MediaQuery.of(context).size.height *
+                                      LIST_VIEW_TITLE_BAR_TEXT_SIZE /
+                                      3),
+                              child: loading ? Text(
+                                "Nearby Stops",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize:
+                                  MediaQuery.of(context).size.height *
+                                      LIST_VIEW_TITLE_BAR_TEXT_SIZE,
+                                ),
+                              ) : Text(
+                                currentStopNearby != null
+                                    ? currentStopNearby.commonName.length > 17
+                                    ? currentStopNearby.commonName
+                                    .replaceRange(
+                                    18,
+                                    currentStopNearby
+                                        .commonName.length,
+                                    "...")
+                                    : currentStopNearby.commonName
+                                    : "Nearby Stops",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize:
+                                  MediaQuery.of(context).size.height *
+                                      LIST_VIEW_TITLE_BAR_TEXT_SIZE,
+                                ),
                               ),
-                            ) : Text(
-                              currentStopNearby != null
-                                  ? currentStopNearby.commonName.length > 17
-                                  ? currentStopNearby.commonName
-                                  .replaceRange(
-                                  18,
-                                  currentStopNearby
-                                      .commonName.length,
-                                  "...")
-                                  : currentStopNearby.commonName
-                                  : "Nearby Stops",
-                              style: TextStyle(
+                            ),
+                            currentStopNearby != null
+                                ? GestureDetector(
+                                onTap: () {
+                                  mapHeight = INITIAL_MAP_HEIGHT;
+                                  this.widget.setStateParent(() {});
+                                  if (currentFavourites.containsKey(currentStopNearby.naptanId)) {
+                                    currentFavourites.removeWhere((key, value) => key == currentStopNearby.naptanId);
+                                    writeFavourites();
+                                    setState(() {});
+                                  } else {
+                                    currentFavourites[currentStopNearby.naptanId] = {
+                                      "stopLetter": currentStopNearby.stopLetter,
+                                      "commonName": currentStopNearby.commonName,
+                                      "distance": currentStopNearby.distance,
+                                      "lat": currentStopNearby.lat,
+                                      "lon:": currentStopNearby.lon,
+                                      "lines": currentStopNearby.lines,
+                                    };
+                                    writeFavourites();
+                                    setState(() {});
+                                  }
+                                  favouritesChanged = true;
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.only(
+                                      left: 3,
+                                      right: 3,
+                                      bottom: 3,
+                                      top: 5),
+                                  decoration: BoxDecoration(
+                                    borderRadius:
+                                    BorderRadius.circular(100),
+                                    color: Color(0xff2b2e4a),
+                                  ),
+                                  child: Icon(
+                                    currentFavourites.containsKey(currentStopNearby.naptanId) ? Icons.favorite : Icons.favorite_border,
+                                    color: Color(0xffe84545),
+                                  ),
+                                ))
+                                : Container(),
+                          ],
+                        ),
+                        currentStopNearby != null
+                            ? Container(
+                          padding: EdgeInsets.only(
+                              left:
+                              MediaQuery.of(context).size.height *
+                                  LIST_VIEW_TITLE_BAR_TEXT_SIZE /
+                                  3,
+                              top:
+                              MediaQuery.of(context).size.height *
+                                  LIST_VIEW_TITLE_BAR_TEXT_SIZE /
+                                  4),
+                          child: Text(
+                            "ID " +
+                                currentStopNearby.naptanId +
+                                " | " +
+                                currentStopNearby.lines.join(" • "),
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize:
+                              MediaQuery.of(context).size.height *
+                                  LIST_VIEW_TITLE_BAR_TEXT_SIZE /
+                                  2,
+                            ),
+                          ),
+                        )
+                            : Container(),
+                      ],
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Container(
+                        width: 100.0,
+                        height: 100.0,
+                      ),
+                    ),
+                    currentStopNearby != null ? Container(
+                      margin: EdgeInsets.only(right: MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT - PULL_TAB_HEIGHT) * 0.2),
+                      height: MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT - PULL_TAB_HEIGHT) * 0.6,
+                      width: MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT - PULL_TAB_HEIGHT) * 0.6,
+                      child: Material(
+                        borderRadius: BorderRadius.all(
+                            Radius.circular(MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT - PULL_TAB_HEIGHT) * 0.6)
+                        ),
+                        color: Color(0xffe84545),
+                        child: InkWell(
+                          borderRadius: BorderRadius.all(
+                              Radius.circular(MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT - PULL_TAB_HEIGHT) * 0.6)
+                          ),
+                          onTap: () {
+                            mapHeight = INITIAL_MAP_HEIGHT;
+                            this.widget.setStateParent(() {});
+                            mapController.onReady.then((value) {
+                              mapController.move(LatLng(currentStopNearby.lat, currentStopNearby.lon), mapController.zoom);
+                            });
+                          },
+                          child: Container(
+                            child: Center(
+                              child: currentStopNearby.stopLetter == null ||
+                                  currentStopNearby.stopLetter
+                                      .toString()
+                                      .contains("->") ||
+                                  currentStopNearby.stopLetter == "Stop"
+                                  ? selectedToggle == 0
+                                  ? Icon(
+                                Icons.directions_bus,
                                 color: Colors.white,
-                                fontSize:
-                                MediaQuery.of(context).size.height *
-                                    LIST_VIEW_TITLE_BAR_TEXT_SIZE,
+                              )
+                                  : Icon(
+                                Icons.directions_train,
+                                color: Colors.white,
+                              )
+                                  : Text(
+                                currentStopNearby.stopLetter
+                                    .split("Stop ")[1],
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: MediaQuery.of(
+                                      context)
+                                      .size
+                                      .width *
+                                      (LIST_VIEW_TITLE_BAR_HEIGHT -
+                                          PULL_TAB_HEIGHT) *
+                                      0.6 *
+                                      0.4,
+                                ),
                               ),
                             ),
                           ),
-                          currentStopNearby != null
-                              ? GestureDetector(
-                              onTap: () {
-                                if (currentFavourites.contains(currentStopNearby.naptanId)) {
-                                  currentFavourites.removeWhere(
-                                          (item) =>
-                                      item ==
-                                          currentStopNearby.naptanId);
-                                  writeFavourites();
-                                  setState(() {});
-                                } else {
-                                  currentFavourites
-                                      .add(currentStopNearby.naptanId);
-                                  writeFavourites();
-                                  setState(() {});
-                                }
-                                favouritesChanged = true;
-                              },
-                              child: Container(
-                                padding: EdgeInsets.only(
-                                    left: 3,
-                                    right: 3,
-                                    bottom: 3,
-                                    top: 5),
-                                decoration: BoxDecoration(
-                                  borderRadius:
-                                  BorderRadius.circular(100),
-                                  color: Color(0xff2b2e4a),
-                                ),
-                                child: Icon(
-                                  currentFavourites.contains(currentStopNearby.naptanId.toString()) ? Icons.favorite : Icons.favorite_border,
-                                  color: Color(0xffe84545),
-                                ),
-                              ))
-                              : Container(),
-                        ],
-                      ),
-                      currentStopNearby != null
-                          ? Container(
-                        padding: EdgeInsets.only(
-                            left:
-                            MediaQuery.of(context).size.height *
-                                LIST_VIEW_TITLE_BAR_TEXT_SIZE /
-                                3,
-                            top:
-                            MediaQuery.of(context).size.height *
-                                LIST_VIEW_TITLE_BAR_TEXT_SIZE /
-                                4),
-                        child: Text(
-                          "ID " +
-                              currentStopNearby.naptanId +
-                              " | " +
-                              currentStopNearby.lines.join(" • "),
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize:
-                            MediaQuery.of(context).size.height *
-                                LIST_VIEW_TITLE_BAR_TEXT_SIZE /
-                                2,
-                          ),
                         ),
-                      )
-                          : Container(),
-                    ],
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Container(
-                      width: 100.0,
-                      height: 100.0,
-                    ),
-                  ),
-                  currentStopNearby != null
-                      ? Container(
-                    height: MediaQuery.of(context).size.width *
-                        (LIST_VIEW_TITLE_BAR_HEIGHT - PULL_TAB_HEIGHT) *
-                        0.6,
-                    width: MediaQuery.of(context).size.width *
-                        (LIST_VIEW_TITLE_BAR_HEIGHT - PULL_TAB_HEIGHT) *
-                        0.6,
-                    margin: EdgeInsets.only(
-                        right: MediaQuery.of(context).size.width *
-                            (LIST_VIEW_TITLE_BAR_HEIGHT -
-                                PULL_TAB_HEIGHT) *
-                            0.2),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.all(
-                          Radius.circular(
-                              MediaQuery.of(context).size.width *
-                                  (LIST_VIEW_TITLE_BAR_HEIGHT -
-                                      PULL_TAB_HEIGHT) *
-                                  0.6)),
-                      color: Color(0xffe84545),
-                    ),
-                    child: Center(
-                        child: GestureDetector(
-                            onTap: () {
-                              /*mapController.move(
-                                  LatLng(currentStop.lat,
-                                      currentStop.lon),
-                                  15);
-                              setState(() {});*/
-                            },
-                            child: currentStopNearby.stopLetter == null ||
-                                currentStopNearby.stopLetter
-                                    .toString()
-                                    .contains("->") ||
-                                currentStopNearby.stopLetter == "Stop"
-                                ? selectedToggle == 0
-                                ? Icon(
-                              Icons.directions_bus,
-                              color: Colors.white,
-                            )
-                                : Icon(
-                              Icons.directions_train,
-                              color: Colors.white,
-                            )
-                                : Text(
-                              currentStopNearby.stopLetter
-                                  .split("Stop ")[1],
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: MediaQuery.of(
-                                    context)
-                                    .size
-                                    .width *
-                                    (LIST_VIEW_TITLE_BAR_HEIGHT -
-                                        PULL_TAB_HEIGHT) *
-                                    0.6 *
-                                    0.4,
-                              ),
-                            ))),
-                  )
-                      : Container(),
-                ],
-              ),
-            ),
-            loading ? Expanded(
-                child: Center(
-                child: CircularProgressIndicator()
-            )
-            ) : Expanded(
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  if (currentStopNearby == null) {
-                    loadNearbyStops(setState);
-                  } else {
-                    loadArrivalTimes(setState);
-                  }
-                },
-                child: SingleChildScrollView(
-                  physics: AlwaysScrollableScrollPhysics(),
-                  child: Column(
-                    children: currentStopNearby == null ? buildNearbyStops(context, setState) : buildArrivalTimes(context)
-                  ),
+                      ),
+                    )
+                        : Container(),
+                  ],
                 ),
               ),
-            )
-          ],
-        ));
+              loading ? Expanded(
+                  child: Center(
+                      child: CircularProgressIndicator()
+                  )
+              ) : Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    mapHeight = INITIAL_MAP_HEIGHT;
+                    this.widget.setStateParent(() {});
+                    if (currentStopNearby == null) {
+                      loadNearbyStops(setState);
+                    } else {
+                      loadArrivalTimes(setState);
+                    }
+                  },
+                  child: SingleChildScrollView(
+                    physics: AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                        children: currentStopNearby == null ? buildNearbyStops(context, setState) : buildArrivalTimes(context)
+                    ),
+                  ),
+                ),
+              )
+            ],
+          )),
+    );
   }
 }

@@ -1,13 +1,16 @@
+import 'dart:convert';
+
 import 'package:location/location.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'global_class.dart';
+import 'package:http/http.dart' as http;
 
 LocationData currentLocation;
 
 bool firstOpen = true;
 bool favouritesChanged = true;
 
-List<String> currentFavourites = [];
+Map<String, dynamic> currentFavourites = {};
 
 Stop currentStopNearby;
 List<Stop> currentNearbyStops;
@@ -19,7 +22,7 @@ List currentArrivalTimesFavourites;
 
 const ANIMATION_DURATION = 300;
 
-const FAVOURITES_ID_LIST_KEY = "57";
+const FAVOURITES_ID_LIST_KEY = "favourites";
 
 const BOTTOM_NAVIGATION_BAR_HEIGHT = 60.0;
 const TOGGLE_BAR_HEIGHT = 0.06;
@@ -41,12 +44,14 @@ final Location location = new Location();
 
 readFavourites() async {
   final prefs = await SharedPreferences.getInstance();
-  final value = prefs.getStringList(FAVOURITES_ID_LIST_KEY) ?? [];
-  currentFavourites = value;
+  String favouriteStops = prefs.getString(FAVOURITES_ID_LIST_KEY) ?? "{}";
+  currentFavourites = json.decode(favouriteStops);
+  //final value = prefs.getStringList(FAVOURITES_ID_LIST_KEY) ?? [];
+  //currentFavourites = value;
 }
 
 writeFavourites() async {
   final prefs = await SharedPreferences.getInstance();
-  prefs.setStringList(FAVOURITES_ID_LIST_KEY, currentFavourites);
+  prefs.setString(FAVOURITES_ID_LIST_KEY, json.encode(currentFavourites));
   favouritesChanged = true;
 }

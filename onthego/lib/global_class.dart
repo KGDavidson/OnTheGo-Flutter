@@ -7,14 +7,15 @@ class Stop {
   final double lon;
   final List lines;
 
-  Stop(
-      {this.stopLetter,
-        this.commonName,
-        this.naptanId,
-        this.distance,
-        this.lat,
-        this.lon,
-        this.lines});
+  Stop({
+    this.stopLetter,
+    this.commonName,
+    this.naptanId,
+    this.distance,
+    this.lat,
+    this.lon,
+    this.lines
+  });
 
   factory Stop.fromJson(Map<String, dynamic> json) {
     return Stop(
@@ -25,6 +26,18 @@ class Stop {
       lat: json['lat'],
       lon: json['lon'],
       lines: json['lines'].map((item) => item["name"]).toList(),
+    );
+  }
+
+  factory Stop.fromPrefs(String naptanId, String stopLetter, String commonName, double distance, double lat, double lon, List<dynamic> lines) {
+    return Stop(
+      stopLetter: stopLetter,
+      commonName: commonName,
+      naptanId: naptanId,
+      distance: distance,
+      lat: lat,
+      lon: lon,
+      lines: lines,
     );
   }
 }
