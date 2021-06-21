@@ -151,7 +151,8 @@ class _ListViewPageState extends State<ListViewPage> {
         return back(setState);
       },
       child: Container(
-          color: Color(0xffe8e8e8),
+        color: Color(0xffe8e8e8),
+        child: SingleChildScrollView(
           child: Column(
             children: <Widget>[
               AnimatedContainer(
@@ -407,7 +408,9 @@ class _ListViewPageState extends State<ListViewPage> {
                             ),
                           )),
             ],
-          )),
+          ),
+        ),
+      ),
     );
   }
 }

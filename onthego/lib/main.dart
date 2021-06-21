@@ -39,10 +39,16 @@ class Main extends StatefulWidget {
   _Main createState() => _Main();
 }
 
-class _Main extends State<Main> {
+class _Main extends State<Main> with TickerProviderStateMixin {
+  TabController tabController;
+
   @override
   void initState() {
     super.initState();
+    tabController = TabController(length: 2, vsync: this);
+    tabController.addListener(() {
+      FocusScope.of(context).unfocus();
+    });
     loadClosestStopArrivalTimes(setState).then((value) {
       readFavourites().then((ret) async {
         fetchFavouriteStops(setState);
@@ -53,43 +59,42 @@ class _Main extends State<Main> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: DefaultTabController(
-        length: 2,
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          bottomNavigationBar: Container(
-            color: Color(0xff2b2e4a),
-            child: TabBar(
-              labelColor: Color(0xffe84545),
-              unselectedLabelColor: Colors.white,
-              indicator: BoxDecoration(),
-              labelPadding: EdgeInsets.all(5),
-              tabs: [
-                Tab(
-                  icon: Icon(
-                    Icons.near_me,
-                    size: 25,
-                  ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        bottomNavigationBar: Container(
+          color: Color(0xff2b2e4a),
+          child: TabBar(
+            controller: tabController,
+            labelColor: Color(0xfcfe84545),
+            unselectedLabelColor: Colors.white,
+            indicator: BoxDecoration(),
+            labelPadding: EdgeInsets.all(5),
+            tabs: [
+              Tab(
+                icon: Icon(
+                  Icons.near_me,
+                  size: 25,
                 ),
-                Tab(
-                  icon: Icon(
-                    Icons.favorite,
-                    size: 25,
-                  ),
+              ),
+              Tab(
+                icon: Icon(
+                  Icons.favorite,
+                  size: 25,
                 ),
-                /*Tab(
+              ),
+              /*Tab(
                   icon: Icon(Icons.alt_route),
                   text: 'Route Planner',
                 ),*/
-              ],
-            ),
-          ),
-          body: TabBarView(
-            children: [
-              ScreenNearby(),
-              ScreenFavourites(),
             ],
           ),
+        ),
+        body: TabBarView(
+          controller: tabController,
+          children: [
+            ScreenNearby(),
+            ScreenFavourites(),
+          ],
         ),
       ),
     );

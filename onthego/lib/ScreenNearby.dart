@@ -37,7 +37,7 @@ List<Widget> buildArrivalTimes(context) {
                 item.lineName != null
                     ? Container(
                         height: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT - PULL_TAB_HEIGHT) * 0.6,
-                        width: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT - PULL_TAB_HEIGHT) * 0.6 * 2,
+                        padding: EdgeInsets.fromLTRB(4, 2, 5, 4),
                         margin: EdgeInsets.only(left: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT - PULL_TAB_HEIGHT) * 0.2),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.all(Radius.circular(MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT - PULL_TAB_HEIGHT) * 0.6)),
@@ -247,7 +247,7 @@ class TopBar extends StatefulWidget {
 }
 
 class _TopBarState extends State<TopBar> {
-  TextEditingController searchController = TextEditingController();
+  TextEditingController searchController = TextEditingController(text: currentSearchString);
 
   @override
   Widget build(BuildContext context) {
@@ -349,6 +349,7 @@ class _TopBarState extends State<TopBar> {
                   height: MediaQuery.of(context).size.height * TOGGLE_HEIGHT,
                   child: TextField(
                     controller: searchController,
+                    autofocus: true,
                     onSubmitted: (text) {
                       searchForStops(this.widget.setStateParent, text);
                     },
@@ -388,6 +389,9 @@ class _TopBarState extends State<TopBar> {
             onTap: () {
               showSearchInput = !showSearchInput;
               setState(() {});
+              if (!showSearchInput) {
+                FocusScope.of(context).unfocus();
+              }
             },
             child: Container(
               padding: EdgeInsets.all(5),
@@ -601,6 +605,7 @@ class _ListViewPageState extends State<ListViewPage> {
           ),
           color: Color(0xffe8e8e8),
           child: Column(
+            mainAxisSize: MainAxisSize.max,
             children: <Widget>[
               AnimatedContainer(
                 duration: Duration(milliseconds: ANIMATION_DURATION),
@@ -609,6 +614,7 @@ class _ListViewPageState extends State<ListViewPage> {
                 color: Color(0xff903749),
                 height: MediaQuery.of(context).size.width * LIST_VIEW_TITLE_BAR_HEIGHT,
                 child: Row(
+                  mainAxisSize: MainAxisSize.max,
                   children: <Widget>[
                     IconButton(
                         icon: Icon(
@@ -622,10 +628,12 @@ class _ListViewPageState extends State<ListViewPage> {
                           back(setState);
                         }),
                     Column(
+                      mainAxisSize: MainAxisSize.max,
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
+                          mainAxisSize: MainAxisSize.max,
                           children: <Widget>[
                             Container(
                               padding: EdgeInsets.only(left: MediaQuery.of(context).size.height * LIST_VIEW_TITLE_BAR_TEXT_SIZE / 3),
@@ -665,7 +673,14 @@ class _ListViewPageState extends State<ListViewPage> {
                                         right: MediaQuery.of(context).size.height * LIST_VIEW_TITLE_BAR_TEXT_SIZE / 3,
                                       ),
                                       child: Text(
-                                        "ID " + currentStopNearby.naptanId + " | " + currentStopNearby.lines.join(" • "),
+                                        () {
+                                          String text = "ID " + currentStopNearby.naptanId + " | " + currentStopNearby.lines.join(" • ");
+                                          try {
+                                            text = text.replaceRange(45, text.length, '...');
+                                          } catch (e) {}
+                                          return text;
+                                        }(),
+                                        overflow: TextOverflow.fade,
                                         style: TextStyle(
                                           color: Colors.grey,
                                           fontSize: MediaQuery.of(context).size.height * LIST_VIEW_TITLE_BAR_TEXT_SIZE / 1.7,
