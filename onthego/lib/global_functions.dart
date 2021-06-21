@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:onthego/ScreenNearby.dart';
 
 import 'globals.dart';
 import 'global_class.dart';
@@ -121,6 +122,7 @@ Future<void> getCurrentLocation() async {
 }
 
 Future<void> loadNearbyStops(setState) async {
+  mapHeight = INITIAL_MAP_HEIGHT;
   setState(() {
     loadingNearby = true;
   });
@@ -154,6 +156,7 @@ Future<void> loadNearbyStops(setState) async {
 }
 
 Future<void> loadArrivalTimesNearby(setState) async {
+  mapHeight = INITIAL_MAP_HEIGHT;
   setState(() {
     loadingNearby = true;
   });
@@ -184,6 +187,7 @@ Future<void> loadArrivalTimesNearby(setState) async {
 }
 
 Future<void> loadArrivalTimesFavourites(setState) async {
+  mapHeight = INITIAL_MAP_HEIGHT;
   setState(() {
     loadingFavourites = true;
   });
@@ -235,6 +239,7 @@ double calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 Future<void> fetchFavouriteStops(setState) async {
+  mapHeight = INITIAL_MAP_HEIGHT;
   setState(() {
     loadingFavourites = true;
   });
@@ -275,6 +280,7 @@ void searchForStops(setState, text) async {
   setState(() {
     loadingNearby = true;
   });
+  mapHeight = INITIAL_MAP_HEIGHT;
   currentSearchString = text;
   currentStopNearby = null;
   await getCurrentLocation();

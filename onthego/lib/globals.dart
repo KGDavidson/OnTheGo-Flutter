@@ -7,7 +7,7 @@ import 'global_class.dart';
 LocationData currentLocation;
 MapController mapController = MapController();
 
-String currentSearchString = "";
+String currentSearchString;
 
 bool firstOpen = true;
 bool favouritesChanged = false;

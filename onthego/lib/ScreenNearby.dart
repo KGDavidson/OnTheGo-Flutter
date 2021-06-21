@@ -133,7 +133,6 @@ class _ScreenNearby extends State<ScreenNearby> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    FocusScope.of(context).unfocus();
     mapController = MapController();
   }
 
@@ -308,6 +307,10 @@ class _TopBarState extends State<TopBar> {
               setState(() {});
               if (!showSearchInput) {
                 FocusScope.of(context).unfocus();
+                if (currentSearchString != null) {
+                  loadClosestStopArrivalTimes(setState);
+                }
+                currentSearchString = null;
               }
             },
             child: Container(
@@ -514,6 +517,7 @@ class _ListViewPageState extends State<ListViewPage> {
       onTap: () {
         mapHeight = INITIAL_MAP_HEIGHT;
         pullTabIcon = true;
+        FocusScope.of(context).unfocus();
         this.widget.setStateParent(() {});
       },
       child: Container(

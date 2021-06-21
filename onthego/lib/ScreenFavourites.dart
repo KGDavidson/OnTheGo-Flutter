@@ -234,7 +234,6 @@ class _ListViewPageState extends State<ListViewPage> {
                                       if (currentFavourites.containsKey(currentStopFavourites.naptanId)) {
                                         currentFavourites.removeWhere((key, value) => key == currentStopFavourites.naptanId);
                                         writeFavourites();
-                                        back(setState);
                                       } else {
                                         currentFavourites[currentStopFavourites.naptanId] = {
                                           "stopLetter": currentStopFavourites.stopLetter,
