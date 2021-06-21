@@ -5,5 +5,5 @@
 - [x] Show Current Location and Nearby Stops on Map
 - [x] Find and List Nearest Stops
 - [x] Display Arrival Times for Selected Stop
-- [ ] Search for Stops
+- [x] Search for Stops
 - [ ] Journey Planner
