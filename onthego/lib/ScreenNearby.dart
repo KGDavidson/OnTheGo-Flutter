@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_map/plugin_api.dart';
 import 'dart:ui';
 
 import 'globals.dart';
@@ -52,7 +53,7 @@ List<Widget> buildNearbyStops(context, setState, setStateParent) {
                         child: Text(
                           item.commonName,
                           style: TextStyle(
-                            color: Color(0xff2b2e4a),
+                            color: Colors.black87,
                             fontSize: MediaQuery.of(context).size.height * LIST_VIEW_ITEM_TEXT_SIZE,
                           ),
                         ),
@@ -63,7 +64,7 @@ List<Widget> buildNearbyStops(context, setState, setStateParent) {
                               child: Text(
                                 "ID " + item.naptanId + " | " + item.lines.join(" • "),
                                 style: TextStyle(
-                                  color: Color(0xff53354a),
+                                  color: Colors.black54,
                                   fontSize: MediaQuery.of(context).size.height * LIST_VIEW_ITEM_TEXT_SIZE / 1.7,
                                 ),
                               ),
@@ -346,7 +347,7 @@ class _MapViewState extends State<MapView> {
             mapController: mapController,
             options: new MapOptions(
               allowPanning: false,
-              interactiveFlags: InteractiveFlag.pinchZoom | InteractiveFlag.doubleTapZoom | InteractiveFlag.pinchMove,
+              interactiveFlags: InteractiveFlag.pinchZoom | InteractiveFlag.doubleTapZoom | InteractiveFlag.pinchMove | InteractiveFlag.drag,
               center: currentLocation == null ? LatLng(51.507351, -0.127758) : LatLng(currentLocation.latitude, currentLocation.longitude),
               zoom: 15.0,
               maxZoom: 17.5,
@@ -598,7 +599,7 @@ class _ListViewPageState extends State<ListViewPage> {
                                         }(),
                                         overflow: TextOverflow.fade,
                                         style: TextStyle(
-                                          color: Colors.grey,
+                                          color: Colors.white70,
                                           fontSize: MediaQuery.of(context).size.height * LIST_VIEW_TITLE_BAR_TEXT_SIZE / 1.7,
                                         ),
                                       ),

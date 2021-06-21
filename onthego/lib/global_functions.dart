@@ -68,7 +68,7 @@ List<Widget> buildArrivalTimes(context, idx) {
                                 : item.destinationName
                             : "",
                         style: TextStyle(
-                          color: Color(0xff2b2e4a),
+                          color: Colors.black87,
                           fontSize: MediaQuery.of(context).size.height * LIST_VIEW_ITEM_TEXT_SIZE,
                         ),
                       ),
@@ -79,7 +79,7 @@ List<Widget> buildArrivalTimes(context, idx) {
                             child: Text(
                               item.vehicleId,
                               style: TextStyle(
-                                color: Color(0xff53354a),
+                                color: Colors.black54,
                                 fontSize: MediaQuery.of(context).size.height * LIST_VIEW_ITEM_TEXT_SIZE / 2,
                               ),
                             ),

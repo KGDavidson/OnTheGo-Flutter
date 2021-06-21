@@ -42,7 +42,7 @@ List<Widget> buildFavourites(context, setState) {
                         child: Text(
                           item.commonName,
                           style: TextStyle(
-                            color: Color(0xff2b2e4a),
+                            color: Colors.black87,
                             fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE,
                           ),
                         ),
@@ -55,7 +55,7 @@ List<Widget> buildFavourites(context, setState) {
                               child: Text(
                                 "ID " + item.naptanId + " | " + item.lines.join(" • "),
                                 style: TextStyle(
-                                  color: Color(0xff53354a),
+                                  color: Colors.black54,
                                   fontSize: (MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top) * LIST_VIEW_ITEM_TEXT_SIZE / 2,
                                 ),
                               ),
@@ -222,9 +222,8 @@ class _ListViewPageState extends State<ListViewPage> {
                                         } catch (e) {}
                                         return text;
                                       }(),
-                                      overflow: TextOverflow.fade,
                                       style: TextStyle(
-                                        color: Colors.grey,
+                                        color: Colors.white70,
                                         fontSize: MediaQuery.of(context).size.height * LIST_VIEW_TITLE_BAR_TEXT_SIZE / 1.7,
                                       ),
                                     ),
