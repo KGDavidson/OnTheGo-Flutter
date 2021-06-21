@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:ui';
 
 import 'globals.dart';
@@ -229,27 +230,30 @@ class _ScreenNearby extends State<ScreenNearby> {
         children: <Widget>[
           ListViewPage(setState),
           MapView(setState),
-          TopToggleBar(setState),
+          TopBar(setState),
         ],
       ),
     );
   }
 }
 
-class TopToggleBar extends StatefulWidget {
+class TopBar extends StatefulWidget {
   Function setStateParent;
 
-  TopToggleBar(this.setStateParent);
+  TopBar(this.setStateParent);
 
   @override
-  _TopToggleBarState createState() => _TopToggleBarState();
+  _TopBarState createState() => _TopBarState();
 }
 
-class _TopToggleBarState extends State<TopToggleBar> {
+class _TopBarState extends State<TopBar> {
+  TextEditingController searchController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: EdgeInsets.only(top: 0),
+      padding: EdgeInsets.fromLTRB(0, 10, 0, 0),
       decoration: BoxDecoration(
         color: Color(0xff53354a),
         boxShadow: [
@@ -261,69 +265,135 @@ class _TopToggleBarState extends State<TopToggleBar> {
           ),
         ],
       ),
-      height: MediaQuery.of(context).size.height * TOGGLE_BAR_HEIGHT,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Material(
-            borderRadius:
-                BorderRadius.only(topLeft: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT), bottomLeft: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT)),
-            color: selectedToggle == 0 ? Color(0xffe84545) : Colors.transparent,
-            child: InkWell(
-              borderRadius:
-                  BorderRadius.only(topLeft: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT), bottomLeft: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT)),
-              onTap: () async {
-                selectedToggle = 0;
-                await loadClosestStopArrivalTimes(this.widget.setStateParent);
-              },
-              child: AnimatedContainer(
-                  height: MediaQuery.of(context).size.height * TOGGLE_HEIGHT,
-                  width: (MediaQuery.of(context).size.width - (MediaQuery.of(context).size.height * (TOGGLE_BAR_HEIGHT - TOGGLE_HEIGHT) * 3 / 2)) * TOGGLE_WIDTH,
-                  decoration: BoxDecoration(
-                    color: selectedToggle == 0 ? Color(0xffe84545) : null,
-                    borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT), bottomLeft: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT)),
-                    border: Border.all(color: Color(0xffe84545), width: 3),
-                  ),
-                  duration: Duration(milliseconds: ANIMATION_DURATION),
-                  curve: Curves.fastOutSlowIn,
-                  child: Center(
-                    child: Icon(
-                      Icons.directions_bus,
-                      color: Colors.white,
-                    ),
-                  )),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              Material(
+                borderRadius:
+                    BorderRadius.only(topLeft: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT), bottomLeft: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT)),
+                color: selectedToggle == 0 ? Color(0xffe84545) : Colors.transparent,
+                child: InkWell(
+                  borderRadius:
+                      BorderRadius.only(topLeft: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT), bottomLeft: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT)),
+                  onTap: () async {
+                    selectedToggle = 0;
+                    if (showSearchInput && currentSearchString.length > 0) {
+                      searchForStops(this.widget.setStateParent, currentSearchString);
+                    } else {
+                      await loadClosestStopArrivalTimes(this.widget.setStateParent);
+                    }
+                  },
+                  child: AnimatedContainer(
+                      height: MediaQuery.of(context).size.height * TOGGLE_HEIGHT,
+                      width: (MediaQuery.of(context).size.width - (MediaQuery.of(context).size.height * (TOGGLE_BAR_HEIGHT - TOGGLE_HEIGHT) * 3 / 2)) * TOGGLE_WIDTH,
+                      decoration: BoxDecoration(
+                        color: selectedToggle == 0 ? Color(0xffe84545) : null,
+                        borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT), bottomLeft: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT)),
+                        border: Border.all(color: Color(0xffe84545), width: 3),
+                      ),
+                      duration: Duration(milliseconds: ANIMATION_DURATION),
+                      curve: Curves.fastOutSlowIn,
+                      child: Center(
+                        child: Icon(
+                          Icons.directions_bus,
+                          color: Colors.white,
+                        ),
+                      )),
+                ),
+              ),
+              Material(
+                borderRadius:
+                    BorderRadius.only(topRight: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT), bottomRight: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT)),
+                color: selectedToggle == 1 ? Color(0xffe84545) : Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.only(
+                      topRight: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT), bottomRight: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT)),
+                  onTap: () async {
+                    selectedToggle = 1;
+                    if (showSearchInput && currentSearchString.length > 0) {
+                      searchForStops(this.widget.setStateParent, currentSearchString);
+                    } else {
+                      await loadClosestStopArrivalTimes(this.widget.setStateParent);
+                    }
+                  },
+                  child: AnimatedContainer(
+                      duration: Duration(milliseconds: ANIMATION_DURATION),
+                      curve: Curves.easeInOut,
+                      height: MediaQuery.of(context).size.height * TOGGLE_HEIGHT,
+                      width: (MediaQuery.of(context).size.width - (MediaQuery.of(context).size.height * (TOGGLE_BAR_HEIGHT - TOGGLE_HEIGHT) * 3 / 2)) * TOGGLE_WIDTH,
+                      decoration: BoxDecoration(
+                        color: selectedToggle == 1 ? Color(0xffe84545) : null,
+                        borderRadius: BorderRadius.only(
+                            topRight: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT), bottomRight: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT)),
+                        border: Border.all(color: Color(0xffe84545), width: 3),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.directions_train,
+                          color: Colors.white,
+                        ),
+                      )),
+                ),
+              )
+            ],
           ),
-          Material(
-            borderRadius:
-                BorderRadius.only(topRight: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT), bottomRight: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT)),
-            color: selectedToggle == 1 ? Color(0xffe84545) : Colors.transparent,
-            child: InkWell(
-              borderRadius:
-                  BorderRadius.only(topRight: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT), bottomRight: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT)),
-              onTap: () async {
-                selectedToggle = 1;
-                await loadClosestStopArrivalTimes(this.widget.setStateParent);
-              },
-              child: AnimatedContainer(
-                  duration: Duration(milliseconds: ANIMATION_DURATION),
-                  curve: Curves.easeInOut,
+          showSearchInput
+              ? Container(
+                  margin: EdgeInsets.only(top: 10),
+                  width: (MediaQuery.of(context).size.width - (MediaQuery.of(context).size.height * (TOGGLE_BAR_HEIGHT - TOGGLE_HEIGHT) * 3 / 2)) * TOGGLE_WIDTH * 2,
                   height: MediaQuery.of(context).size.height * TOGGLE_HEIGHT,
-                  width: (MediaQuery.of(context).size.width - (MediaQuery.of(context).size.height * (TOGGLE_BAR_HEIGHT - TOGGLE_HEIGHT) * 3 / 2)) * TOGGLE_WIDTH,
-                  decoration: BoxDecoration(
-                    color: selectedToggle == 1 ? Color(0xffe84545) : null,
-                    borderRadius: BorderRadius.only(
-                        topRight: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT), bottomRight: Radius.circular(MediaQuery.of(context).size.height * TOGGLE_HEIGHT)),
-                    border: Border.all(color: Color(0xffe84545), width: 3),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      Icons.directions_train,
-                      color: Colors.white,
+                  child: TextField(
+                    controller: searchController,
+                    onSubmitted: (text) {
+                      searchForStops(this.widget.setStateParent, text);
+                    },
+                    onChanged: (text) {
+                      setState(() {});
+                    },
+                    cursorColor: Colors.blueGrey,
+                    decoration: InputDecoration(
+                      fillColor: Colors.white,
+                      filled: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(100)),
+                        borderSide: BorderSide(color: Colors.white, width: 5),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(100)),
+                        borderSide: BorderSide(color: Colors.white, width: 5),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(100)),
+                        borderSide: BorderSide(color: Colors.white, width: 5),
+                      ),
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          searchController.clear();
+                          setState(() {});
+                        },
+                        icon: searchController.text.length > 0 ? Icon(Icons.clear, color: Colors.red) : Icon(Icons.clear, color: Colors.blueGrey),
+                      ),
+                      contentPadding: EdgeInsets.fromLTRB(20, 0, 20, 0),
+                      hintText: 'Search ...',
                     ),
-                  )),
+                  ),
+                )
+              : Container(),
+          GestureDetector(
+            onTap: () {
+              showSearchInput = !showSearchInput;
+              setState(() {});
+            },
+            child: Container(
+              child: Icon(
+                showSearchInput ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                color: Colors.white,
+              ),
             ),
           )
         ],
@@ -351,90 +421,84 @@ class _MapViewState extends State<MapView> {
           duration: Duration(milliseconds: ANIMATION_DURATION),
           curve: Curves.easeOut,
           height: mapHeight,
-          child: GestureDetector(
-            onHorizontalDragUpdate: (details) {
-              print(details.delta.dx);
-            },
-            child: FlutterMap(
-              mapController: mapController,
-              options: new MapOptions(
-                interactiveFlags: InteractiveFlag.pinchZoom,
-                center: currentLocation == null ? LatLng(51.507351, -0.127758) : LatLng(currentLocation.latitude, currentLocation.longitude),
-                zoom: 15.0,
-                maxZoom: 17.5,
-                minZoom: 14.0,
-              ),
-              layers: [
-                new TileLayerOptions(
-                  //https://stamen-tiles-{s}.a.ssl.fastly.net/toner/{z}/{x}/{y}.png
-                  //https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png
-                  urlTemplate: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-                  subdomains: ['a', 'b', 'c', 'd'],
-                ),
-                new MarkerLayerOptions(
-                  markers: currentNearbyStops != null
-                      ? () {
-                          List<Marker> returnList = currentNearbyStops
-                              .map(
-                                (item) => Marker(
-                                  width: 20.0,
-                                  height: 20.0,
-                                  point: LatLng(item.lat, item.lon),
-                                  builder: (ctx) => GestureDetector(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.all(Radius.circular(5)),
-                                        color: currentStopNearby == item ? Color(0xffe84545) : Colors.blueGrey.withAlpha(150),
-                                      ),
-                                      child: Center(
-                                        child: item.stopLetter == null || item.stopLetter.toString().contains("->") || item.stopLetter == "Stop"
-                                            ? selectedToggle == 0
-                                                ? Icon(
-                                                    Icons.directions_bus,
-                                                    color: Colors.white,
-                                                    size: 16,
-                                                  )
-                                                : Icon(
-                                                    Icons.directions_train,
-                                                    color: Colors.white,
-                                                    size: 16,
-                                                  )
-                                            : Text(
-                                                item.stopLetter.split("Stop ")[1],
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT - PULL_TAB_HEIGHT) * 0.6 * 0.25,
-                                                ),
-                                              ),
-                                      ),
-                                    ),
-                                    onTap: () async {
-                                      currentStopNearby = item;
-                                      loadArrivalTimesNearby(this.widget.setStateParent);
-                                    },
-                                  ),
-                                ),
-                              )
-                              .toList();
-                          if (currentLocation != null) {
-                            returnList.add(Marker(
-                              width: 80.0,
-                              height: 80.0,
-                              point: LatLng(currentLocation.latitude, currentLocation.longitude),
-                              builder: (ctx) => Icon(
-                                Icons.my_location,
-                                color: Colors.blueGrey,
-                                size: 25,
-                              ),
-                            ));
-                          }
-                          return returnList;
-                        }()
-                      : [],
-                ),
-              ],
+          child: FlutterMap(
+            mapController: mapController,
+            options: new MapOptions(
+              allowPanning: false,
+              interactiveFlags: InteractiveFlag.pinchZoom | InteractiveFlag.doubleTapZoom | InteractiveFlag.pinchMove,
+              center: currentLocation == null ? LatLng(51.507351, -0.127758) : LatLng(currentLocation.latitude, currentLocation.longitude),
+              zoom: 15.0,
+              maxZoom: 17.5,
+              minZoom: 14.0,
             ),
+            layers: [
+              new TileLayerOptions(
+                urlTemplate: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+                subdomains: ['a', 'b', 'c', 'd'],
+              ),
+              new MarkerLayerOptions(
+                markers: currentNearbyStops != null
+                    ? () {
+                        List<Marker> returnList = currentNearbyStops
+                            .map(
+                              (item) => Marker(
+                                width: 20.0,
+                                height: 20.0,
+                                point: LatLng(item.lat, item.lon),
+                                builder: (ctx) => GestureDetector(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.all(Radius.circular(5)),
+                                      color: currentStopNearby == item ? Color(0xffe84545) : Colors.blueGrey.withAlpha(150),
+                                    ),
+                                    child: Center(
+                                      child: item.stopLetter == null || item.stopLetter.toString().contains("->") || item.stopLetter == "Stop"
+                                          ? selectedToggle == 0
+                                              ? Icon(
+                                                  Icons.directions_bus,
+                                                  color: Colors.white,
+                                                  size: 16,
+                                                )
+                                              : Icon(
+                                                  Icons.directions_train,
+                                                  color: Colors.white,
+                                                  size: 16,
+                                                )
+                                          : Text(
+                                              item.stopLetter.split("Stop ")[1],
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: MediaQuery.of(context).size.width * (LIST_VIEW_TITLE_BAR_HEIGHT - PULL_TAB_HEIGHT) * 0.6 * 0.25,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                  onTap: () async {
+                                    currentStopNearby = item;
+                                    loadArrivalTimesNearby(this.widget.setStateParent);
+                                  },
+                                ),
+                              ),
+                            )
+                            .toList();
+                        if (currentLocation != null) {
+                          returnList.add(Marker(
+                            width: 80.0,
+                            height: 80.0,
+                            point: LatLng(currentLocation.latitude, currentLocation.longitude),
+                            builder: (ctx) => Icon(
+                              Icons.my_location,
+                              color: Colors.blueGrey,
+                              size: 25,
+                            ),
+                          ));
+                        }
+                        return returnList;
+                      }()
+                    : [],
+              ),
+            ],
           ),
         ),
         GestureDetector(
@@ -556,7 +620,7 @@ class _ListViewPageState extends State<ListViewPage> {
                               padding: EdgeInsets.only(left: MediaQuery.of(context).size.height * LIST_VIEW_TITLE_BAR_TEXT_SIZE / 3),
                               child: loadingNearby
                                   ? Text(
-                                      "Nearby Stops",
+                                      "Stations",
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: MediaQuery.of(context).size.height * LIST_VIEW_TITLE_BAR_TEXT_SIZE,
@@ -567,7 +631,7 @@ class _ListViewPageState extends State<ListViewPage> {
                                           ? currentStopNearby.commonName.length > LIST_VIEW_TITLE_MAX_LENGTH
                                               ? currentStopNearby.commonName.replaceRange(LIST_VIEW_TITLE_MAX_LENGTH + 1, currentStopNearby.commonName.length, "...")
                                               : currentStopNearby.commonName
-                                          : "Nearby Stops",
+                                          : "Stations",
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: MediaQuery.of(context).size.height * LIST_VIEW_TITLE_BAR_TEXT_SIZE,

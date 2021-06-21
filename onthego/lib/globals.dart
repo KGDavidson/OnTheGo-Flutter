@@ -7,10 +7,13 @@ import 'global_class.dart';
 LocationData currentLocation;
 MapController mapController = MapController();
 
+String currentSearchString = "";
+
 bool firstOpen = true;
 bool favouritesChanged = false;
 bool loadingNearby = false;
 bool loadingFavourites = false;
+bool showSearchInput = false;
 
 int selectedToggle = 0;
 

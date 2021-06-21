@@ -176,3 +176,37 @@ Future<Stop> fetchFavouriteStop(MapEntry<String, dynamic> stop) async {
 
   return new Stop(stopLetter, commonName, naptanId, distance, lat, lon, lines);
 }
+
+void searchForStops(setState, text) async {
+  setState(() {
+    loadingNearby = true;
+  });
+  currentSearchString = text;
+  currentStopNearby = null;
+  await getCurrentLocation();
+  List<String> busTrain = ["coach,bus", "dlr,national-rail,overground,tflrail,tube"];
+  String modes = busTrain[selectedToggle];
+  String urlString = "https://api.tfl.gov.uk/StopPoint/Search/?query=$text&modes=$modes";
+  final response = await http.get(Uri.parse(urlString));
+  currentNearbyStops = [];
+  if (response.statusCode == 200) {
+    List matches = jsonDecode(response.body)["matches"];
+    for (Map match in matches) {
+      String naptanId = match['id'];
+      String stopUrlString = "https://api.tfl.gov.uk/StopPoint/$naptanId";
+      final response = await http.get(Uri.parse(stopUrlString));
+      if (response.statusCode == 200) {
+        Map stopPoint = Map.from(jsonDecode(response.body));
+        List linesFiltered = stopPoint['lines'].map((item) => item["name"]).toList();
+        if (linesFiltered.length > 0) {
+          currentNearbyStops.add(Stop(stopPoint['indicator'], stopPoint['commonName'], stopPoint["naptanId"], stopPoint['distance'], stopPoint['lat'], stopPoint['lon'], linesFiltered));
+        }
+      }
+    }
+  }
+
+  setState(() {
+    loadingNearby = false;
+  });
+  return;
+}
