@@ -1,26 +1,17 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui';
-import 'dart:convert';
 
 import 'globals.dart';
-import 'global_class.dart';
+import 'global_functions.dart';
 
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:location/location.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:http/http.dart' as http;
-import 'package:marquee/marquee.dart';
 
-MapController mapController = MapController();
-
-int selectedToggle = 0;
 double lastPosition = 0;
 double mapHeight = INITIAL_MAP_HEIGHT;
 
 bool pullTabIcon = true;
-bool loading = false;
 
 bool back(setState) {
   if (currentStopNearby != null) {
@@ -135,7 +126,7 @@ List<Widget> buildNearbyStops(context, setState, setStateParent) {
                 } else {
                   currentStopNearby = item;
                   setStateParent(() => {});
-                  await loadArrivalTimes(setState);
+                  await loadArrivalTimesNearby(setState);
                 }
               },
               style: TextButton.styleFrom(backgroundColor: Color(0xffe8e8e8), padding: EdgeInsets.all(5)),
@@ -213,82 +204,6 @@ List<Widget> buildNearbyStops(context, setState, setStateParent) {
   return nearbyStops;
 }
 
-Future<void> getCurrentLocation() async {
-  currentLocation = await location.getLocation();
-  return;
-}
-
-Future<void> loadNearbyStops(setState) async {
-  setState(() {
-    loading = true;
-  });
-  await getCurrentLocation();
-  List<String> busTrain = ["NaptanBusCoachStation,NaptanPrivateBusCoachTram,NaptanPublicBusCoachTram", "NaptanRailStation,NaptanMetroStation"];
-  String stopTypes = busTrain[selectedToggle];
-  String latitude = currentLocation.latitude.toString();
-  String longitude = currentLocation.longitude.toString();
-  mapController.onReady.then((value) {
-    mapController.move(LatLng(currentLocation.latitude, currentLocation.longitude), mapController.zoom);
-  });
-  String urlString = "https://api.tfl.gov.uk/StopPoint?stoptypes=$stopTypes&radius=$SEARCH_RADIUS&lat=$latitude&lon=$longitude";
-
-  var uri = Uri.parse(urlString);
-
-  final response = await http.get(uri);
-  if (response.statusCode == 200) {
-    List stopPoints = jsonDecode(response.body)["stopPoints"];
-    currentNearbyStops = stopPoints
-        .map((json) => Stop(json['indicator'], json['commonName'], json["naptanId"], json['distance'], json['lat'], json['lon'], json['lines'].map((item) => item["name"]).toList()))
-        .toList();
-  }
-  setState(() {
-    loading = false;
-  });
-  return;
-}
-
-Future<void> loadArrivalTimes(setState) async {
-  setState(() {
-    loading = true;
-  });
-  mapController.onReady.then((value) {
-    mapController.move(LatLng(currentStopNearby.lat, currentStopNearby.lon), mapController.zoom);
-  });
-  String id = currentStopNearby.naptanId;
-  String urlString = "https://api.tfl.gov.uk/StopPoint/$id/Arrivals";
-
-  var uri = Uri.parse(urlString);
-
-  final response = await http.get(uri);
-  if (response.statusCode == 200) {
-    List arrivalTimes = jsonDecode(response.body);
-    currentArrivalTimesNearby = arrivalTimes
-        .map((json) => ArrivalTime(
-              json['vehicleId'],
-              json['lineName'],
-              json["destinationName"],
-              json['timeToStation'],
-            ))
-        .toList();
-  }
-  setState(() {
-    loading = false;
-  });
-  return;
-}
-
-Future<void> loadClosestStopArrivalTimes(setState) async {
-  setState(() {
-    loading = true;
-  });
-  await loadNearbyStops(setState);
-  currentStopNearby = currentNearbyStops[0];
-  await loadArrivalTimes(setState);
-  setState(() {
-    loading = false;
-  });
-}
-
 class ScreenNearby extends StatefulWidget {
   @override
   _ScreenNearby createState() => _ScreenNearby();
@@ -299,10 +214,6 @@ class _ScreenNearby extends State<ScreenNearby> {
   void initState() {
     super.initState();
     readFavourites();
-    if (firstOpen) {
-      firstOpen = false;
-      loadClosestStopArrivalTimes(setState);
-    }
     if (currentLocation != null) {
       mapController = MapController();
     }
@@ -495,7 +406,7 @@ class _MapViewState extends State<MapView> {
                                   ),
                                   onTap: () async {
                                     currentStopNearby = item;
-                                    loadArrivalTimes(this.widget.setStateParent);
+                                    loadArrivalTimesNearby(this.widget.setStateParent);
                                   },
                                 ),
                               ),
@@ -637,7 +548,7 @@ class _ListViewPageState extends State<ListViewPage> {
                           children: <Widget>[
                             Container(
                               padding: EdgeInsets.only(left: MediaQuery.of(context).size.height * LIST_VIEW_TITLE_BAR_TEXT_SIZE / 3),
-                              child: loading
+                              child: loadingNearby
                                   ? Text(
                                       "Nearby Stops",
                                       style: TextStyle(
@@ -695,7 +606,7 @@ class _ListViewPageState extends State<ListViewPage> {
                                             "commonName": currentStopNearby.commonName,
                                             "distance": currentStopNearby.distance,
                                             "lat": currentStopNearby.lat,
-                                            "lon:": currentStopNearby.lon,
+                                            "lon": currentStopNearby.lon,
                                             "lines": currentStopNearby.lines,
                                           };
                                           writeFavourites();
@@ -765,7 +676,7 @@ class _ListViewPageState extends State<ListViewPage> {
                   ],
                 ),
               ),
-              loading
+              loadingNearby
                   ? Expanded(child: Center(child: CircularProgressIndicator()))
                   : Expanded(
                       child: RefreshIndicator(
@@ -776,7 +687,7 @@ class _ListViewPageState extends State<ListViewPage> {
                           if (currentStopNearby == null) {
                             loadNearbyStops(setState);
                           } else {
-                            loadArrivalTimes(setState);
+                            loadArrivalTimesNearby(setState);
                           }
                         },
                         child: SingleChildScrollView(

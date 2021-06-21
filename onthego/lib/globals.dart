@@ -1,16 +1,18 @@
-import 'dart:convert';
 import 'dart:ui';
 
-import 'package:flutter/cupertino.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:location/location.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'global_class.dart';
-import 'package:http/http.dart' as http;
 
 LocationData currentLocation;
+MapController mapController = MapController();
 
 bool firstOpen = true;
-bool favouritesChanged = true;
+bool favouritesChanged = false;
+bool loadingNearby = false;
+bool loadingFavourites = false;
+
+int selectedToggle = 0;
 
 Map<String, dynamic> currentFavourites = {};
 
@@ -46,17 +48,3 @@ const INITIAL_MAP_HEIGHT = 150.0;
 final double MAX_MAP_HEIGHT = window.physicalSize.width / window.devicePixelRatio;
 
 final Location location = new Location();
-
-readFavourites() async {
-  final prefs = await SharedPreferences.getInstance();
-  String favouriteStops = prefs.getString(FAVOURITES_ID_LIST_KEY) ?? "{}";
-  currentFavourites = json.decode(favouriteStops);
-  //final value = prefs.getStringList(FAVOURITES_ID_LIST_KEY) ?? [];
-  //currentFavourites = value;
-}
-
-writeFavourites() async {
-  final prefs = await SharedPreferences.getInstance();
-  prefs.setString(FAVOURITES_ID_LIST_KEY, json.encode(currentFavourites));
-  favouritesChanged = true;
-}

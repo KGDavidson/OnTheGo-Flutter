@@ -1,16 +1,16 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:onthego/ScreenFavourites.dart';
+
+import 'global_functions.dart';
 import 'ScreenNearby.dart';
 import 'ScreenFavourites.dart';
-import 'ScreenRoutePlanner.dart';
+//import 'ScreenRoutePlanner.dart';
 
 final double bottomNavigationBarHeight = 60;
 bool run = false;
 
 void main() async {
-
   WidgetsFlutterBinding.ensureInitialized();
 
   runApp(MyApp());
@@ -41,19 +41,28 @@ class Main extends StatefulWidget {
 
 class _Main extends State<Main> {
   @override
+  void initState() {
+    super.initState();
+    loadClosestStopArrivalTimes(setState).then((value) {
+      readFavourites().then((ret) async {
+        fetchFavouriteStops(setState);
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: DefaultTabController(
         length: 2,
-        child:  Scaffold(
+        child: Scaffold(
           backgroundColor: Colors.transparent,
           bottomNavigationBar: Container(
             color: Color(0xff2b2e4a),
             child: TabBar(
               labelColor: Color(0xffe84545),
               unselectedLabelColor: Colors.white,
-              indicator: BoxDecoration(
-              ),
+              indicator: BoxDecoration(),
               labelPadding: EdgeInsets.all(5),
               tabs: [
                 Tab(
