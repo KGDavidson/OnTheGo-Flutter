@@ -129,12 +129,12 @@ List<Widget> buildNearbyStops(context, setState, setStateParent) {
             height: MediaQuery.of(context).size.width * LIST_VIEW_ITEM_HEIGHT,
             child: TextButton(
               onPressed: () async {
-                print("test");
                 if (mapHeight != INITIAL_MAP_HEIGHT) {
                   mapHeight = INITIAL_MAP_HEIGHT;
                   setStateParent(() => {});
                 } else {
                   currentStopNearby = item;
+                  setStateParent(() => {});
                   await loadArrivalTimes(setState);
                 }
               },
