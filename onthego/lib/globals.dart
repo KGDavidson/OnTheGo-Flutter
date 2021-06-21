@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:ui';
 
+import 'package:flutter/cupertino.dart';
 import 'package:location/location.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'global_class.dart';
@@ -21,6 +23,7 @@ List currentFavouriteStops;
 List currentArrivalTimesFavourites;
 
 const ANIMATION_DURATION = 300;
+const SEARCH_RADIUS = 1500;
 
 const FAVOURITES_ID_LIST_KEY = "favourites";
 
@@ -32,13 +35,15 @@ const PULL_TAB_HEIGHT = 0.03;
 
 const LIST_VIEW_TITLE_BAR_HEIGHT = 0.22;
 const LIST_VIEW_ITEM_HEIGHT = 0.13;
-const LIST_VIEW_TITLE_BAR_TEXT_SIZE = 0.025;
-const LIST_VIEW_ITEM_TEXT_SIZE = 0.0205;
+const LIST_VIEW_TITLE_BAR_TEXT_SIZE = 0.021;
+const LIST_VIEW_ITEM_TEXT_SIZE = 0.019;
 
 const LIST_VIEW_TITLE_BAR_HEIGHT_FAVOURITES = 0.15;
 
-const INITIAL_MAP_HEIGHT = 200.0;
-const MAX_MAP_HEIGHT = 500.0;
+const LIST_VIEW_TITLE_MAX_LENGTH = 21;
+
+const INITIAL_MAP_HEIGHT = 150.0;
+final double MAX_MAP_HEIGHT = window.physicalSize.width / window.devicePixelRatio;
 
 final Location location = new Location();
 
