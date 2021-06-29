@@ -41,7 +41,7 @@ List<Widget> buildArrivalTimes(context, idx) {
                 item.lineName != null
                     ? Container(
                         height: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT - PULL_TAB_HEIGHT) * 0.6,
-                        padding: EdgeInsets.fromLTRB(4, 2, 5, 4),
+                        padding: EdgeInsets.all(4),
                         margin: EdgeInsets.only(left: MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT - PULL_TAB_HEIGHT) * 0.2),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.all(Radius.circular(MediaQuery.of(context).size.width * (LIST_VIEW_ITEM_HEIGHT - PULL_TAB_HEIGHT) * 0.6)),
@@ -164,7 +164,10 @@ Future<void> loadArrivalTimesNearby(setState) async {
     mapController.move(LatLng(currentStopNearby.lat, currentStopNearby.lon), mapController.zoom);
   });
   String id = currentStopNearby.naptanId;
-  String urlString = "https://api.tfl.gov.uk/StopPoint/$id/Arrivals";
+  List<String> busTrain = ["bus,replacement-bus,coach", "tube,dlr,national-rail,overground,tflrail,"];
+  String modes = busTrain[selectedToggle];
+
+  String urlString = "https://api.tfl.gov.uk/StopPoint/$id/Arrivals?mode=$modes";
 
   var uri = Uri.parse(urlString);
 
