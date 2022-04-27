@@ -2,9 +2,12 @@
 
 This is a london transport app powered by Flutter and the TFL API. It provides all functionality including searching and viewing stops and their departure times.
 
-|          Nearby stations           |          Departure times           |         Expanded map view          |           Saved stations           |
-| :--------------------------------: | :--------------------------------: | :--------------------------------: | :--------------------------------: |
-| ![](https://iili.io/VsRG44.md.jpg) | ![](https://iili.io/VsRV3l.md.jpg) | ![](https://iili.io/VsR4yP.md.jpg) | ![](https://iili.io/VsRPu1.md.jpg) |
+<div style="display: flex; flex-direction: row; float:center">
+  <img style="flex-grow: 1; margin: 10px;" src="https://iili.io/VsRG44.md.jpg" width="100"/>
+  <img style="flex-grow: 1; margin: 10px;" src="https://iili.io/VsRV3l.md.jpg" width="100"/>
+  <img style="flex-grow: 1; margin: 10px;" src="https://iili.io/VsR4yP.md.jpg" width="100"/>
+  <img style="flex-grow: 1; margin: 10px;" src="https://iili.io/VsRPu1.md.jpg" width="100"/>
+</div>
 
 ---
 
