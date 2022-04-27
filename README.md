@@ -13,11 +13,10 @@ This is a london transport app powered by Flutter and the TFL API. It provides a
 
 ## Features
 
--   Show Current Location and Nearby Stops on Map
--   Find and List Nearest Stops
--   Display Arrival Times for Selected Stop
--   Search for Stops
--   Other awesome features yet to be implemented
+-   Show current location and nearby stops on map
+-   Find and list nearest stops
+-   Display arrival times for selected stop
+-   Search for stops
 
 ---
 
