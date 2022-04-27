@@ -1,4 +1,4 @@
-# (Discontinued) OnTheGo
+# OnTheGo
 
 This is a london transport app powered by Flutter and the TFL API. It provides all functionality including searching and viewing stops and their departure times.
 
